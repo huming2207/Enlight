@@ -6,5 +6,6 @@
 #define ENLIGHT_MAIN_H
 
 #include <Common.h>
+#include "LightService.h"
 
 #endif //ENLIGHT_MAIN_H

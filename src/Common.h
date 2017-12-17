@@ -9,7 +9,7 @@
 #include <FastLED.h>
 #include <WiFi.h>
 #include <Preferences.h>
-#include "aREST.h"
+#include <ESP32WebServer.h>
 #include "Hardware.h"
 
 #if CONFIG_FREERTOS_UNICORE

@@ -3,12 +3,14 @@
 //
 
 #include "LightService.h"
+#include "StaticPages/Error.h"
 
 
-void Light::init()
+void LightService::init()
 {
-    restfulService = aREST();
-    preferences = Preferences();
+    // Load server
+    webServer = ESP32WebServer();
+    webServer.begin();
 
     // Load LEDs
     FastLED.addLeds<NEOPIXEL, ENLIGHT_LED_DATA_BUS_PIN>(enlightArray, ENLIGHT_LED_COUNT).setCorrection(TypicalSMD5050);
@@ -30,9 +32,7 @@ void Light::init()
         copyColorToAllLed(enlightArray, storedRGB);
     }
 
-    // Start the task for handling RESTful service
-    String deviceName = String((unsigned long)ESP.getEfuseMac(), HEX);
-    deviceName = deviceName.substring(deviceName.length() - 6);
+
 
 }
 
@@ -41,7 +41,7 @@ void Light::init()
  * @param ledArray LED array
  * @param color Reference of color in CRGB LED object
  */
-void Light::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color)
+void LightService::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color)
 {
     for(uint8_t ledIndex = 0; ledIndex < ledArray.size(); ledIndex++)
     {
@@ -53,7 +53,7 @@ void Light::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color
  * Get color value from NVRAM and return in CRGB LED object
  * @return Color in CRGB LED object
  */
-CRGB Light::getColorFromNvram()
+CRGB LightService::getColorFromNvram()
 {
     return CRGB((uint8_t)preferences.getUInt("red-led", 255),
                 (uint8_t)preferences.getUInt("grn-led", 255),
@@ -65,17 +65,17 @@ CRGB Light::getColorFromNvram()
  * @param color CRGB LED object
  * @return Size of saved data
  */
-size_t Light::setColorToNvram(CRGB color)
+size_t LightService::setColorToNvram(CRGB color)
 {
     return preferences.putUInt("red-led", color.r)
            + preferences.putUInt("grn-led", color.g)
            + preferences.putUInt("blu-led", color.b);
 }
 
-void Light::restfulServiceTask(void * taskArg)
+void LightService::restfulServiceTask(void * taskArg)
 {
     // "Set-up" section
-    // TODO: put some shitty code here
+
 
     // "Loop" section
     while(true)
@@ -83,3 +83,49 @@ void Light::restfulServiceTask(void * taskArg)
         // TODO: put some other shit here
     }
 }
+
+void LightService::enlightHandlerInit()
+{
+    // Handle 404 not found error
+    webServer.onNotFound(std::bind(&LightService::enlightNotFoundHandler, this));
+
+}
+
+void LightService::enlightIndexPageHandler()
+{
+
+}
+
+void LightService::enlightSwitchHandler()
+{
+
+}
+
+void LightService::enlightColorHandler()
+{
+
+}
+
+void LightService::enlightBrightnessHandler()
+{
+
+}
+
+void LightService::enlightSettingHandler()
+{
+
+}
+
+void LightService::enlightInfoHandler()
+{
+    // Get
+    String deviceName = String((unsigned long)ESP.getEfuseMac(), HEX);
+    deviceName = deviceName.substring(deviceName.length() - 6);
+}
+
+void LightService::enlightNotFoundHandler()
+{
+    webServer.send(404, "text/html", ENLIGHT_STATIC_PAGE_404);
+}
+
+

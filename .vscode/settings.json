@@ -1,5 +1,9 @@
 {
     "terminal.integrated.env.osx": {
         "PATH": "/Users/hu/.platformio/penv/bin:/Users/hu/esp/xtensa-esp32-elf/bin:/Users/hu/.platformio/penv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/VMware Fusion.app/Contents/Public:/usr/local/share/dotnet:/opt/X11/bin"
+    },
+    "files.associations": {
+        "array": "cpp",
+        "initializer_list": "cpp"
     }
 }
