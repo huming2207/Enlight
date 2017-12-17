@@ -14,5 +14,11 @@
 // Default (estimated) LED color temperature
 #define ENLIGHT_DEFAULT_LED_COLOR_TEMP              5500
 
+// Default SSID
+#define ENLIGHT_DEFAULT_WIFI_SSID                   "enlight"
+
+// Default retry time (in second)
+#define ENLIGHT_DEFAULT_RETRY_COUNT                10
+
 
 #endif //ENLIGHT_HARDWARE_H
