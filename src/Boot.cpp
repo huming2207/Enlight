@@ -4,6 +4,10 @@
 
 #include "Boot.h"
 
+/**
+ * Initialization function
+ * @return True if online, False if not.
+ */
 bool Boot::init()
 {
     // Load configuration and see if there's any existing stuff
@@ -25,7 +29,7 @@ bool Boot::init()
         log_i("Network: setup successful, go to http://%s", selfIP.toString().c_str());
 
         // Start web task
-        xTaskCreatePinnedToCore(bootWebTask, "BootWeb", 32000, nullptr, 2, nullptr, ARDUINO_RUNNING_CORE);
+        xTaskCreatePinnedToCore(bootInitWebTask, "BootWeb", 32000, nullptr, 2, nullptr, ARDUINO_RUNNING_CORE);
     }
     else
     {
@@ -41,20 +45,41 @@ bool Boot::init()
             delay(1000);
         }
 
-        // Stop here it still failed
+        // Goes to offline mode if
         if(WiFi.status() != WL_CONNECTED)
         {
             log_e("Network: no WiFi connection, will work in offline mode!");
+            return false;
         }
 
-
+        return true;
 
     }
 }
 
-void Boot::bootWebTask(void *taskParam)
+void Boot::bootInitWebTask(void *taskParam)
 {
+    webServer.on("/", [this]()
+    {
+        this->handleInitPage();
+    });
 
+    webServer.on("/finish", [this]()
+    {
+        if(webServer.method() != HTTP_POST)
+        {
+            webServer.send(403, "text/html", ENLIGHT_STATIC_PAGE_403);
+        }
+        else
+        {
+            this->handleFinishPage();
+        }
+    });
+}
+
+void Boot::handleInitPage()
+{
+    webServer.send(200, "text/html", )
 }
 
 void Boot::handleFinishPage()

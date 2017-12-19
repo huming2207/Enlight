@@ -6,6 +6,7 @@
 #define ENLIGHT_NETWORKSERVICE_H
 
 #include "Common.h"
+#include "StaticPages/Error.h"
 
 class Boot
 {
@@ -15,8 +16,9 @@ class Boot
     private:
         TaskHandle_t bootWebTaskHandle;
         ESP32WebServer webServer;
-        void bootWebTask(void * taskParam);
-        void Boot::handleFinishPage();
+        void bootInitWebTask(void *taskParam);
+        void handleInitPage();
+        void handleFinishPage();
 
 };
 
