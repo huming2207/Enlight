@@ -5,13 +5,6 @@
 #ifndef ENLIGHT_COMMON_H
 #define ENLIGHT_COMMON_H
 
-#include <cstdint>
-#include <FastLED.h>
-#include <WiFi.h>
-#include <Preferences.h>
-#include <ESP32WebServer.h>
-#include "Hardware.h"
-
 #if CONFIG_FREERTOS_UNICORE
 #define ARDUINO_RUNNING_CORE 0
 #else

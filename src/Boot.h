@@ -5,22 +5,31 @@
 #ifndef ENLIGHT_NETWORKSERVICE_H
 #define ENLIGHT_NETWORKSERVICE_H
 
+#include <WebServer.h>
+#include <Preferences.h>
 #include "Common.h"
-#include "StaticPages/Error.h"
+
 
 class Boot
 {
-    public:
-        bool init();
+  public:
+    bool init();
 
-    private:
-        TaskHandle_t bootWebTaskHandle;
-        ESP32WebServer webServer;
-        void bootInitWebTask(void *taskParam);
-        void handleInitPage();
-        void handleFinishPage();
+  private:
+    Preferences preferences;
+
+    TaskHandle_t bootWebTaskHandle;
+
+    WebServer webServer;
+
+    DynamicJsonBuffer jsonBuffer;
+
+    void bootInitWebTask(void *taskParam);
+
+    void handleInfoPage();
+
+    void handleFinishPage();
 
 };
-
 
 #endif //ENLIGHT_NETWORKSERVICE_H
