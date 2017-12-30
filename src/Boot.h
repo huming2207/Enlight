@@ -5,8 +5,8 @@
 #ifndef ENLIGHT_NETWORKSERVICE_H
 #define ENLIGHT_NETWORKSERVICE_H
 
-#include <WebServer.h>
 #include <Preferences.h>
+#include <ESPAsyncWebServer.h>
 #include "Common.h"
 
 
@@ -18,17 +18,13 @@ class Boot
   private:
     Preferences preferences;
 
-    TaskHandle_t bootWebTaskHandle;
+    AsyncWebServer webServer;
 
-    WebServer webServer;
+    void bootInitWebTask();
 
-    DynamicJsonBuffer jsonBuffer;
+    void handleInfoPage(AsyncWebServerRequest *request);
 
-    void bootInitWebTask(void *taskParam);
-
-    void handleInfoPage();
-
-    void handleFinishPage();
+    void handleFinishPage(AsyncWebServerRequest *request);
 
 };
 

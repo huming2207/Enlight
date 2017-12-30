@@ -7,8 +7,8 @@
 
 #include "Hardware.h"
 
+#include <ESPAsyncWebServer.h>
 #include <Preferences.h>
-#include <WebServer.h>
 #include <FastLED.h>
 
 
@@ -20,8 +20,6 @@ class LightService
   private:
     Preferences preferences;
 
-    WebServer webServer;
-
     CRGBArray<ENLIGHT_LED_COUNT> enlightArray;
 
     void copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color);
@@ -30,23 +28,24 @@ class LightService
 
     size_t setColorToNvram(CRGB color);
 
-    void restfulServiceTask(void *taskArg);
+ protected:
+  AsyncWebServer webServer;
 
-    void enlightHandlerInit();
+  void enlightHandlerInit();
 
-    void enlightResetHandler();
+  void enlightResetHandler(AsyncWebServerRequest *request);
 
-    void enlightSwitchHandler();
+  void enlightSwitchHandler(AsyncWebServerRequest *request);
 
-    void enlightColorHandler();
+  void enlightColorHandler(AsyncWebServerRequest *request);
 
-    void enlightBrightnessHandler();
+  void enlightBrightnessHandler(AsyncWebServerRequest *request);
 
-    void enlightSettingHandler();
+  void enlightSettingHandler(AsyncWebServerRequest *request);
 
-    void enlightInfoHandler();
+  void enlightInfoHandler(AsyncWebServerRequest *request);
 
-    void enlightNotFoundHandler();
+  void enlightNotFoundHandler(AsyncWebServerRequest *request);
 };
 
 #endif //ENLIGHT_LIGHT_H

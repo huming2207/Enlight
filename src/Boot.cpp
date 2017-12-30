@@ -2,9 +2,10 @@
 // Created by Ming Hu on 17/12/17.
 //
 
-#include <http_parser.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
+#include <WiFi.h>
+
 #include "Boot.h"
 #include "Hardware.h"
 
@@ -42,8 +43,8 @@ bool Boot::init()
     // Set init flag to true
     preferences.putBool("init_net", true);
 
-    // Start web task
-    xTaskCreatePinnedToCore(bootInitWebTask, "BootWeb", 32000, nullptr, 2, nullptr, ARDUINO_RUNNING_CORE);
+    // Initialise the web task
+    bootInitWebTask();
   } else {
     // Continue to connect WiFi
     WiFi.begin(preferences.getString("wifi_ssid", ENLIGHT_DEFAULT_WIFI_SSID).c_str(),
@@ -67,23 +68,21 @@ bool Boot::init()
   }
 }
 
-void Boot::bootInitWebTask(void *taskParam)
+void Boot::bootInitWebTask()
 {
+  webServer = AsyncWebServer(80);
 
-  webServer.on("/info", [this]()
-  {
-    this->handleInfoPage();
-  });
+  webServer.begin();
 
-  webServer.on("/finish", [this]()
-  {
-    this->handleFinishPage();
-  });
+  webServer.on("/info", HTTP_GET, std::bind(&Boot::handleInfoPage, this, std::placeholders::_1));
+
+  webServer.on("/finish", HTTP_GET, std::bind(&Boot::handleFinishPage, this, std::placeholders::_1));
 }
 
-void Boot::handleInfoPage()
+void Boot::handleInfoPage(AsyncWebServerRequest *request)
 {
   // Create a JSON buffer
+  DynamicJsonBuffer jsonBuffer;
   JsonObject &infoObject = jsonBuffer.createObject();
 
   infoObject["led_count"] = ENLIGHT_LED_COUNT;
@@ -101,22 +100,24 @@ void Boot::handleInfoPage()
   jsonBuffer.clear();
 
   // Send to client
-  webServer.send(200, "application/json", jsonString);
+  request->send(200, "application/json", jsonString);
 
 }
 
-void Boot::handleFinishPage()
+void Boot::handleFinishPage(AsyncWebServerRequest *request)
 {
 
   bool failedAttempt = false;
 
   // If no WiFi SSID, then it must be corrupted.
-  if (!webServer.hasArg("plain")) {
-    webServer.send(400, "text/plain", "Bad Request");
+  if (!request->hasArg("plain")) {
+    request->send(400, "text/plain", "Bad Request");
     return;
   } else {
+
     // Deal with the POSTed JSON text
-    JsonObject &settingObject = jsonBuffer.parseObject(webServer.arg("plain"));
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject &settingObject = jsonBuffer.parseObject(request->arg("plain"));
 
     // Save to NVRAM
     if (preferences.putString("wifi_ssid", settingObject["wifi_ssid"].as<String>())) failedAttempt = true;
@@ -130,7 +131,7 @@ void Boot::handleFinishPage()
 
     // If failed, stop here
     if (failedAttempt) {
-      webServer.send(500, "text/plain", "Internal Server Error");
+      request->send(500, "text/plain", "Internal Server Error");
     } else {
       // Clear up the JSON buffer and make something new
       jsonBuffer.clear();
@@ -143,7 +144,7 @@ void Boot::handleFinishPage()
       returnObject.printTo(jsonString);
 
       // Send it to client
-      webServer.send(200, "application/json", jsonString);
+      request->send(200, "application/json", jsonString);
     }
   }
 
