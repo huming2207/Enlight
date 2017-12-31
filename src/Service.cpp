@@ -156,7 +156,8 @@ size_t Service::setColorToNvram(CRGB color)
  * @param ledArray LED array
  * @param color Reference of color in CRGB LED object
  */
-void Service::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color) {
+void Service::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color)
+{
 
   for (uint8_t ledIndex = 0; ledIndex < ledArray.size(); ledIndex++) {
     ledArray[ledIndex] = color;
@@ -271,8 +272,17 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
   infoObject["sys_id"] = String((unsigned long) ESP.getEfuseMac(), HEX);
   infoObject["sys_chip_rev"] = ESP.getChipRevision();
   infoObject["sys_dual_core"] = (ARDUINO_RUNNING_CORE == 1);
-  infoObject["net_ssid"] = WiFi.SSID();
-  infoObject["net_ip"] = WiFi.localIP().toString();
+  infoObject["sys_ver"] = ENLIGHT_VERSION_FULL;
+
+  // WiFi.localIP() will only return correct IP address when it works in client (STA only) mode.
+  // To get correct IP address in AP mode or AP+STA mixed mode, we need to use WiFi.softAPIP() instead.
+  infoObject["net_ip"] =
+      (WiFi.getMode() == WIFI_MODE_AP || WiFi.getMode() == WIFI_MODE_APSTA) ?
+          WiFi.softAPIP().toString() :
+          WiFi.localIP().toString();
+
+  // ...same as SSID
+  infoObject["net_ssid"] = (WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID();
 
   // Print to string
   String jsonString;
