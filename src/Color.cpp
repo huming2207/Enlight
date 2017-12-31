@@ -36,12 +36,12 @@ CRGB Color::GetRgbFromColorTemp(int colorTemp)
     blueValue = 255;
   }
 
-  return CRGB(clipColorValue(redValue, 0, 255),    // Final red color value
-              clipColorValue(greenValue, 0, 255),  // Final green color value
-              clipColorValue(blueValue, 0, 255));  // Final blue color value
+  return CRGB(clipColorValue((uint8_t)redValue, 0, 255),    // Final red color value
+              clipColorValue((uint8_t)greenValue, 0, 255),  // Final green color value
+              clipColorValue((uint8_t)blueValue, 0, 255));  // Final blue color value
 }
 
-uint8_t Color::clipColorValue(int number, uint8_t min, uint8_t max)
+uint8_t Color::clipColorValue(uint8_t number, uint8_t min, uint8_t max)
 {
   // for ESP32 platform, std::min and std::max are broken
   if (number < min) return min;

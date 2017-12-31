@@ -16,7 +16,7 @@ class Color
     static CRGB GetRgbFromColorTemp(int colorTemp);
 
   private:
-    static uint8_t clipColorValue(int number, uint8_t min, uint8_t max);
+    static uint8_t clipColorValue(uint8_t number, uint8_t min, uint8_t max);
 
 };
 
