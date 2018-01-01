@@ -25,6 +25,7 @@ class Service
   void enlightSettingHandler(AsyncWebServerRequest *request);
   void enlightInfoHandler(AsyncWebServerRequest *request);
   CRGBArray<ENLIGHT_LED_COUNT> enlightArray;
+  String enlightTemplateRenderer(const String& var);
 
  public:
   void init();

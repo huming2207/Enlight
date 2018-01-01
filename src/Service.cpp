@@ -8,6 +8,7 @@
 
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
+#include <SPIFFS.h>
 
 void Service::init()
 {
@@ -91,7 +92,12 @@ void Service::init()
 
 void Service::webInit()
 {
+  log_d("Service: init filesystem...");
+  SPIFFS.begin();
+
   log_d("Service: init web service, registering handlers");
+
+
   webServer.on("/power",
                HTTP_GET,
                std::bind(&Service::enlightSwitchHandler, this, std::placeholders::_1));
@@ -115,6 +121,10 @@ void Service::webInit()
   webServer.on("/info",
                HTTP_GET,
                std::bind(&Service::enlightInfoHandler, this, std::placeholders::_1));
+
+  webServer.serveStatic("/", SPIFFS, "/")
+      .setTemplateProcessor(std::bind(&Service::enlightTemplateRenderer, this, std::placeholders::_1))
+      .setDefaultFile("index.html");
 
   webServer.begin();
 
@@ -288,4 +298,31 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
 
   // Send to user
   request->send(200, "application/json", jsonString);
+}
+
+String Service::enlightTemplateRenderer(const String& var)
+{
+  // Return WiFi SSID
+  if(var == "WIFI_SSID") {
+    return(String((WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID()));
+  }
+
+  // Return WiFi RSSI value in percentage
+  if(var == "WIFI_RSSI") {
+    return(String(2 * (WiFi.RSSI() + 100)) + "%");
+  }
+
+  // Return current IP address
+  if(var == "WIFI_IP") {
+    return((WiFi.getMode() == WIFI_MODE_AP || WiFi.getMode() == WIFI_MODE_APSTA) ?
+           WiFi.softAPIP().toString() :
+           WiFi.localIP().toString());
+  }
+
+  // Return firmware version
+  if(var == "FIRM_VERSION") {
+    return(ENLIGHT_VERSION_FULL);
+  }
+
+  return String();
 }
