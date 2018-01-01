@@ -17,6 +17,8 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
+
+
 #ifndef ENLIGHT_GIT_REV
 #define ENLIGHT_GIT_REV "Unknown"
 #endif

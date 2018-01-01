@@ -9,17 +9,12 @@
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
 
-
-
-AsyncWebServer webServer(80);
-
 void Service::init()
 {
   bool forceOffline = false;
 
   // Load service settings
   log_i("Preference: loading LED preference with namespace \"enlight\"\n");
-  preferences = Preferences();
   preferences.begin("enlight");
 
   // If LED is not init, set to default
@@ -267,6 +262,7 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
 
   // Add information to buffer
   infoObject["led_count"] = ENLIGHT_LED_COUNT;
+  infoObject["sys_inited"] = preferences.getBool("enlight_init", false);
   infoObject["sys_free_ram"] = ESP.getFreeHeap();
   infoObject["sys_sdk_ver"] = ESP.getSdkVersion();
   infoObject["sys_id"] = String((unsigned long) ESP.getEfuseMac(), HEX);
@@ -283,6 +279,7 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
 
   // ...same as SSID
   infoObject["net_ssid"] = (WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID();
+  infoObject["net_sig"] = WiFi.RSSI();
 
   // Print to string
   String jsonString;

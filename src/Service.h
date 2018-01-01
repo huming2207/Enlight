@@ -14,7 +14,8 @@ class Service
 {
 
  private:
-  Preferences preferences;
+  Preferences preferences = Preferences();
+  AsyncWebServer webServer = AsyncWebServer(80);
   void webInit();
   void copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color);
   void enlightResetHandler(AsyncWebServerRequest *request);

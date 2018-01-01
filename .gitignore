@@ -4,6 +4,7 @@ CMakeLists.txt
 .piolibdeps
 .vscode/c_cpp_properties.json
 CMakeListsPrivate.txt
+!data
 ### Vim template
 # Swap
 [._]*.s[a-v][a-z]
