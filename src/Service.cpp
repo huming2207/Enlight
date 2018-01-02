@@ -9,6 +9,7 @@
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
 #include <SPIFFS.h>
+#include <AsyncJson.h>
 
 void Service::init()
 {
@@ -96,8 +97,6 @@ void Service::webInit()
   SPIFFS.begin();
 
   log_d("Service: init web service, registering handlers");
-
-
   webServer.on("/power",
                HTTP_GET,
                std::bind(&Service::enlightSwitchHandler, this, std::placeholders::_1));
@@ -125,6 +124,10 @@ void Service::webInit()
   webServer.serveStatic("/", SPIFFS, "/")
       .setTemplateProcessor(std::bind(&Service::enlightTemplateRenderer, this, std::placeholders::_1))
       .setDefaultFile("index.html");
+
+  // Separate resource out from root, as the template engine will fuck up the CSS
+  webServer.serveStatic("/resources", SPIFFS, "/res")
+      .setTemplateProcessor(std::bind(&Service::enlightTemplateRenderer, this, std::placeholders::_1));
 
   webServer.begin();
 
@@ -267,8 +270,8 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
   deviceName = deviceName.substring(deviceName.length() - 6);
 
   // Encode JSON and send it to user
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &infoObject = jsonBuffer.createObject();
+  AsyncJsonResponse *response = new AsyncJsonResponse();
+  JsonObject &infoObject = response->getRoot();
 
   // Add information to buffer
   infoObject["led_count"] = ENLIGHT_LED_COUNT;
@@ -291,13 +294,15 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
   infoObject["net_ssid"] = (WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID();
   infoObject["net_sig"] = WiFi.RSSI();
 
-  // Print to string
-  String jsonString;
-  infoObject.printTo(jsonString);
-  jsonBuffer.clear();
+  // Now prepare to send out the stream buffer
+  response->setContentType("application/json");
+  response->setCode(200);
+
+  // Get the length
+  response->setLength();
 
   // Send to user
-  request->send(200, "application/json", jsonString);
+  request->send(response);
 }
 
 String Service::enlightTemplateRenderer(const String& var)
@@ -309,7 +314,7 @@ String Service::enlightTemplateRenderer(const String& var)
 
   // Return WiFi RSSI value in percentage
   if(var == "WIFI_RSSI") {
-    return(String(2 * (WiFi.RSSI() + 100)) + "%");
+    return(String(2 * (WiFi.RSSI() + 100)) + " %25");
   }
 
   // Return current IP address
@@ -322,6 +327,11 @@ String Service::enlightTemplateRenderer(const String& var)
   // Return firmware version
   if(var == "FIRM_VERSION") {
     return(ENLIGHT_VERSION_FULL);
+  }
+
+  // Return serial number (EfuseMac)
+  if(var == "EFUSE_SN") {
+    return(String((unsigned long) ESP.getEfuseMac(), HEX));
   }
 
   return String();
