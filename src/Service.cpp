@@ -11,7 +11,6 @@
 #include <SPIFFS.h>
 #include <AsyncJson.h>
 
-
 void Service::init()
 {
 
@@ -20,6 +19,8 @@ void Service::init()
   // Load service settings
   log_i("Preference: loading LED preference with namespace \"enlight\"\n");
   preferences.begin("enlight");
+
+  // Add some delay and see if it works
 
   // Load LEDs
   FastLED.addLeds<NEOPIXEL, ENLIGHT_LED_DATA_BUS_PIN>(enlightArray, ENLIGHT_LED_COUNT);
@@ -117,7 +118,7 @@ void Service::webInit()
 
   webServer.on("/temp",
                 HTTP_GET,
-                std::bind(&Service::enlightTemplateRenderer, this, std::placeholders::_1));
+                std::bind(&Service::enlightColorTempHandler, this, std::placeholders::_1));
 
   webServer.on("/bright",
                HTTP_GET,
@@ -176,9 +177,10 @@ size_t Service::setColorToNvram(CRGB color)
  */
 void Service::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color)
 {
-
+  log_i("Color: copying color, r=%d, g=%d b=%d", color.r, color.g, color.b);
   for (uint8_t ledIndex = 0; ledIndex < ledArray.size(); ledIndex++) {
     ledArray[ledIndex] = color;
+    FastLED.show();
   }
 }
 
@@ -208,16 +210,21 @@ void Service::enlightSwitchHandler(AsyncWebServerRequest *request)
 
 void Service::enlightColorHandler(AsyncWebServerRequest *request)
 {
-
   if (request->hasArg("value")
-      && request->arg("value").charAt(0) == '#'
-      && request->arg("value").length() == 7) {
+      && request->arg("value").charAt(0) == '#') {
+
+    log_i("Color: got request raw value: %s", request->arg("value").c_str());
 
     // Create the string and remove the first '#' symbol
-    String colorStr = request->arg("color");
-    colorStr.remove(1);
+    String colorStr = request->arg("value");
+    colorStr.remove(0, 1);
+
+    log_i("Color: got string value after remove(0): %s", colorStr.c_str());
 
     uint32_t colorValue = (uint32_t) strtol(colorStr.c_str(), nullptr, 16);
+
+    log_i("Color: converted to uint32_t: %u", colorValue);
+
     CRGB color = CRGB(colorValue);
 
     if (request->hasArg("save") && request->arg("save").equals("true")) {
@@ -226,7 +233,6 @@ void Service::enlightColorHandler(AsyncWebServerRequest *request)
     }
 
     copyColorToAllLed(enlightArray, color);
-    FastLED.show();
 
     request->send(200, "text/plain", "OK");
 
@@ -238,10 +244,13 @@ void Service::enlightColorHandler(AsyncWebServerRequest *request)
 void Service::enlightColorTempHandler(AsyncWebServerRequest * request)
 {
   if (request->hasArg("value") 
-      && request->arg("value").toInt() < 7000 
-      && request->arg("value").toInt() > 3000) {
+      && request->arg("value").toInt() < 40000
+      && request->arg("value").toInt() > 1000) {
 
     CRGB color = Color::GetRgbFromColorTemp(request->arg("value").toInt());
+
+    log_d("Color: got color %lu...", request->arg("value").toInt());
+
     copyColorToAllLed(enlightArray, color);
     FastLED.show();
 
@@ -255,10 +264,15 @@ void Service::enlightColorTempHandler(AsyncWebServerRequest * request)
 void Service::enlightBrightnessHandler(AsyncWebServerRequest *request)
 {
 
+  log_d("Brightness: got brightness request...\n");
+
   if (request->hasArg("value")) {
 
     uint8_t value = (uint8_t) request->arg("value").toInt();
-    FastLED.setBrightness(value);
+
+    log_d("Brightness: setting to %d...", value);
+
+    FastLED.show(value);
 
     if (request->hasArg("save") && request->arg("save").equals("true")) {
       log_i("Preference: saving new brightness value to NVRAM...");

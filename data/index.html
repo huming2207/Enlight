@@ -8,7 +8,7 @@
     <script src="res/js/semantic.min.js"></script>
     <script src="res/js/light.js"></script>
 </head>
-<body onload="pageInit()">
+<body>
 <div class="ui pointing menu">
     <a class="item active" href="#overview">
         Overview
@@ -65,8 +65,9 @@
         </div>
         <form class="ui form" action="">
             <div class="center field">
-                <label for="color-selector">Color: </label>
-                <input type="color" name="value" id="color-selector" style="width:100%" value="#FFFFFF">
+                <label for="led-color-selector">Color: </label>
+                <input type="color" name="value" id="led-color-selector" style="width:100%" value="#FFFFFF"
+                       onchange="onColorSelectorChange()">
             </div>
         </form>
         <div class="ui horizontal divider">
@@ -75,7 +76,8 @@
         <form class="ui form">
             <div class="center field">
                 <label for="temp-slider">Color temperature: </label>
-                <input type="range" name="value" style="width:100%" id="temp-slider">
+                <input type="range" name="value" style="width:100%" id="temp-slider" min="1000" max="10000"
+                       onchange="onTempSliderChange()">
             </div>
         </form>
         <div class="ui horizontal divider">
@@ -84,12 +86,13 @@
         <form class="ui form">
             <div class="center field">
                 <label for="bright-slider">Brightness: </label>
-                <input type="range" name="value" style="width:100%" id="bright-slider">
+                <input type="range" name="value" style="width:100%" id="bright-slider" min="0" max="255"
+                       onchange="onBrightSliderChange()">
             </div>
         </form>
     </div>
 
-    <div class="ui segment" id="settings">
+    <div class="ui segment" id="settings" onload="pageInit()">
         <h3 class="ui center aligned header">
             Settings
         </h3>
