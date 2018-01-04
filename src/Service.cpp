@@ -11,8 +11,10 @@
 #include <SPIFFS.h>
 #include <AsyncJson.h>
 
+
 void Service::init()
 {
+
   bool forceOffline = false;
 
   // Load service settings
@@ -70,7 +72,7 @@ void Service::init()
   }
 
   // Goes to offline mode if WiFi is not connected, otherwise set up mDNS and web service.
-  if(!forceOffline) {
+  if (!forceOffline) {
 
     // Get unique device name from EfuseMac
     String deviceName = String((unsigned long) ESP.getEfuseMac(), HEX);
@@ -79,7 +81,7 @@ void Service::init()
     // Register mDNS service
     log_i("MDNS: Setting up mDNS service with device name %s...\n", deviceName.c_str());
 
-    if(WiFi.getMode() == WIFI_MODE_APSTA || WiFi.getMode() == WIFI_MODE_AP) {
+    if (WiFi.getMode() == WIFI_MODE_APSTA || WiFi.getMode() == WIFI_MODE_AP) {
       MDNS.begin(deviceName.c_str(), TCPIP_ADAPTER_IF_AP);
     } else {
       MDNS.begin(deviceName.c_str());
@@ -96,6 +98,7 @@ void Service::init()
 
 void Service::webInit()
 {
+
   log_d("Service: init filesystem...");
   SPIFFS.begin();
 
@@ -111,6 +114,10 @@ void Service::webInit()
   webServer.on("/color",
                HTTP_GET,
                std::bind(&Service::enlightColorHandler, this, std::placeholders::_1));
+
+  webServer.on("/temp",
+                HTTP_GET,
+                std::bind(&Service::enlightTemplateRenderer, this, std::placeholders::_1));
 
   webServer.on("/bright",
                HTTP_GET,
@@ -175,8 +182,6 @@ void Service::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &col
   }
 }
 
-
-
 void Service::enlightResetHandler(AsyncWebServerRequest *request)
 {
 
@@ -204,10 +209,16 @@ void Service::enlightSwitchHandler(AsyncWebServerRequest *request)
 void Service::enlightColorHandler(AsyncWebServerRequest *request)
 {
 
-  if (request->hasArg("r") && request->hasArg("g") && request->hasArg("b")) {
-    CRGB color = CRGB((uint8_t) request->arg("r").toInt(),
-                      (uint8_t) request->arg("g").toInt(),
-                      (uint8_t) request->arg("b").toInt());
+  if (request->hasArg("value")
+      && request->arg("value").charAt(0) == '#'
+      && request->arg("value").length() == 7) {
+
+    // Create the string and remove the first '#' symbol
+    String colorStr = request->arg("color");
+    colorStr.remove(1);
+
+    uint32_t colorValue = (uint32_t) strtol(colorStr.c_str(), nullptr, 16);
+    CRGB color = CRGB(colorValue);
 
     if (request->hasArg("save") && request->arg("save").equals("true")) {
       log_i("Preference: saving color settings to NVRAM");
@@ -218,6 +229,24 @@ void Service::enlightColorHandler(AsyncWebServerRequest *request)
     FastLED.show();
 
     request->send(200, "text/plain", "OK");
+
+  } else {
+    request->send(400, "text/plain", "Bad Request");
+  }
+}
+
+void Service::enlightColorTempHandler(AsyncWebServerRequest * request)
+{
+  if (request->hasArg("value") 
+      && request->arg("value").toInt() < 7000 
+      && request->arg("value").toInt() > 3000) {
+
+    CRGB color = Color::GetRgbFromColorTemp(request->arg("value").toInt());
+    copyColorToAllLed(enlightArray, color);
+    FastLED.show();
+
+    request->send(200, "text/plain", "OK");
+
   } else {
     request->send(400, "text/plain", "Bad Request");
   }
@@ -262,7 +291,7 @@ void Service::enlightSettingHandler(AsyncWebServerRequest *request)
   // Set init flag to true
   log_i("Preference: setting LED init flag to true...\n");
   preferences.putBool("enlight_init", false);
-  
+
   request->send(200, "text/plain", "OK");
 }
 
@@ -290,8 +319,8 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
   // To get correct IP address in AP mode or AP+STA mixed mode, we need to use WiFi.softAPIP() instead.
   infoObject["net_ip"] =
       (WiFi.getMode() == WIFI_MODE_AP || WiFi.getMode() == WIFI_MODE_APSTA) ?
-          WiFi.softAPIP().toString() :
-          WiFi.localIP().toString();
+      WiFi.softAPIP().toString() :
+      WiFi.localIP().toString();
 
   // ...same as SSID
   infoObject["net_ssid"] = (WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID();
@@ -308,33 +337,33 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
   request->send(response);
 }
 
-String Service::enlightTemplateRenderer(const String& var)
+String Service::enlightTemplateRenderer(const String &var)
 {
   // Return WiFi SSID
-  if(var == "WIFI_SSID") {
-    return(String((WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID()));
+  if (var == "WIFI_SSID") {
+    return (String((WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID()));
   }
 
   // Return WiFi RSSI value in percentage
-  if(var == "WIFI_RSSI") {
-    return(String(2 * (WiFi.RSSI() + 100)) + "  %");
+  if (var == "WIFI_RSSI") {
+    return (String(2 * (WiFi.RSSI() + 100)) + "  %");
   }
 
   // Return current IP address
-  if(var == "WIFI_IP") {
-    return((WiFi.getMode() == WIFI_MODE_AP || WiFi.getMode() == WIFI_MODE_APSTA) ?
-           WiFi.softAPIP().toString() :
-           WiFi.localIP().toString());
+  if (var == "WIFI_IP") {
+    return ((WiFi.getMode() == WIFI_MODE_AP || WiFi.getMode() == WIFI_MODE_APSTA) ?
+            WiFi.softAPIP().toString() :
+            WiFi.localIP().toString());
   }
 
   // Return firmware version
-  if(var == "FIRM_VERSION") {
-    return(ENLIGHT_VERSION_FULL);
+  if (var == "FIRM_VERSION") {
+    return (ENLIGHT_VERSION_FULL);
   }
 
   // Return serial number (EfuseMac)
-  if(var == "EFUSE_SN") {
-    return(String((unsigned long) ESP.getEfuseMac(), HEX));
+  if (var == "EFUSE_SN") {
+    return (String((unsigned long) ESP.getEfuseMac(), HEX));
   }
 
   return String();

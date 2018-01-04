@@ -14,19 +14,19 @@ function pageInit() {
 
 function onTempSliderChange() {
 
+    sendSettings("/temp", "value=" + (tempSlider.value * 40 + 3000).toString())
 
 }
 
 function onBrightSliderChange() {
 
-    sendSettings("/bright", "value=" + brightSlider.value().toString())
+    sendSettings("/bright", "value=" + brightSlider.value.toString())
 
 }
 
 function onColorSelectorChange() {
 
-
-
+    sendSettings("/color", "value=" + colorSelector.value.toString())
 }
 
 function sendSettings(endPoint, setting) {

@@ -8,7 +8,7 @@
     <script src="res/js/semantic.min.js"></script>
     <script src="res/js/light.js"></script>
 </head>
-<body>
+<body onload="pageInit()">
 <div class="ui pointing menu">
     <a class="item active" href="#overview">
         Overview
@@ -65,8 +65,8 @@
         </div>
         <form class="ui form" action="">
             <div class="center field">
-                <label>Color: </label>
-                <input type="color" name="colorPicker" id="color-selector" style="width:100%">
+                <label for="color-selector">Color: </label>
+                <input type="color" name="value" id="color-selector" style="width:100%" value="#FFFFFF">
             </div>
         </form>
         <div class="ui horizontal divider">
@@ -74,8 +74,8 @@
         </div>
         <form class="ui form">
             <div class="center field">
-                <label>Color temperature: </label>
-                <input type="range" name="colorTempPicker" style="width:100%" id="temp-slider">
+                <label for="temp-slider">Color temperature: </label>
+                <input type="range" name="value" style="width:100%" id="temp-slider">
             </div>
         </form>
         <div class="ui horizontal divider">
@@ -83,8 +83,8 @@
         </div>
         <form class="ui form">
             <div class="center field">
-                <label>Brightness: </label>
-                <input type="range" name="brightnessPicker" style="width:100%" id="bright-slider">
+                <label for="bright-slider">Brightness: </label>
+                <input type="range" name="value" style="width:100%" id="bright-slider">
             </div>
         </form>
     </div>
