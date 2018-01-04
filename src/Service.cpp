@@ -19,7 +19,10 @@ void Service::init()
   log_i("Preference: loading LED preference with namespace \"enlight\"\n");
   preferences.begin("enlight");
 
-  // If LED is not init, set to default
+  // Load LEDs
+  FastLED.addLeds<NEOPIXEL, ENLIGHT_LED_DATA_BUS_PIN>(enlightArray, ENLIGHT_LED_COUNT);
+
+  // If the lamp is not init, set to default settings with WiFi in AP mode
   if (preferences.getBool("enlight_init", true)) {
 
     // Init LEDs
@@ -314,7 +317,7 @@ String Service::enlightTemplateRenderer(const String& var)
 
   // Return WiFi RSSI value in percentage
   if(var == "WIFI_RSSI") {
-    return(String(2 * (WiFi.RSSI() + 100)) + " %25");
+    return(String(2 * (WiFi.RSSI() + 100)) + "  %");
   }
 
   // Return current IP address

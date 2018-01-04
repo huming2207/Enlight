@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EnlightCenter Web</title>
-    <link rel="stylesheet" href="resources/css/semantic.min.css"/>
-    <script src="resources/js/semantic.min.js"></script>
+    <link rel="stylesheet" href="res/css/semantic.min.css"/>
+    <script src="res/js/semantic.min.js"></script>
+    <script src="res/js/light.js"></script>
 </head>
 <body>
 <div class="ui pointing menu">
     <a class="item active" href="#overview">
         Overview
     </a>
-    <a class="item" href="#color">
+    <a class="item" href="#light">
         Color & Brightness
     </a>
     <a class="item" href="#settings">
@@ -19,10 +21,11 @@
     </a>
 </div>
 <div class="ui text container">
-    <h1 class="ui center aligned header" id="overview">
-        Welcome back!
-    </h1>
-    <div class="ui segment">
+    <div class="ui segment" id="overview">
+        <h3 class="ui center aligned header">
+            About Enlight
+        </h3>
+        <div class="ui divider"></div>
         <table class="ui celled table">
             <thead>
             <tr>
@@ -53,7 +56,44 @@
         </table>
     </div>
 
+    <div class="ui segment" id="light">
+        <h3 class="ui center aligned header">
+            Color and Light
+        </h3>
+        <div class="ui horizontal divider">
+            Color Mode
+        </div>
+        <form class="ui form" action="">
+            <div class="center field">
+                <label>Color: </label>
+                <input type="color" name="colorPicker" id="color-selector" style="width:100%">
+            </div>
+        </form>
+        <div class="ui horizontal divider">
+            Reading Mode
+        </div>
+        <form class="ui form">
+            <div class="center field">
+                <label>Color temperature: </label>
+                <input type="range" name="colorTempPicker" style="width:100%" id="temp-slider">
+            </div>
+        </form>
+        <div class="ui horizontal divider">
+            Brightness
+        </div>
+        <form class="ui form">
+            <div class="center field">
+                <label>Brightness: </label>
+                <input type="range" name="brightnessPicker" style="width:100%" id="bright-slider">
+            </div>
+        </form>
+    </div>
+
     <div class="ui segment" id="settings">
+        <h3 class="ui center aligned header">
+            Settings
+        </h3>
+        <div class="ui divider"></div>
         <form class="ui form" action="">
             <div class="field">
                 <label>WiFi Name (SSID)</label>
