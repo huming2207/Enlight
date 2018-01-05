@@ -137,8 +137,7 @@ void Service::webInit()
       .setDefaultFile("index.html");
 
   // Separate resource out from root, as the template engine will fuck up the CSS
-  webServer.serveStatic("/resources", SPIFFS, "/res")
-      .setTemplateProcessor(std::bind(&Service::enlightTemplateRenderer, this, std::placeholders::_1));
+  webServer.serveStatic("/common", SPIFFS, "/ui").setCacheControl("max-age=31536000");
 
   webServer.begin();
 
