@@ -8,13 +8,14 @@
 #include <ESPAsyncWebServer.h>
 #include <Preferences.h>
 #include <FastLED.h>
+#include <Update.h>
 #include "Hardware.h"
 
 class Service
 {
 
  private:
-  Preferences preferences = Preferences();
+  Preferences *preferences;
   AsyncWebServer webServer = AsyncWebServer(80);
   void webInit();
   void copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color);
@@ -25,13 +26,17 @@ class Service
   void enlightSettingHandler(AsyncWebServerRequest *request);
   void enlightInfoHandler(AsyncWebServerRequest *request);
   void enlightColorTempHandler(AsyncWebServerRequest * request);
+  void enlightOtaHandler(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
+  void enlightOtaStatusHandler(AsyncWebServerRequest *request);
   CRGBArray<ENLIGHT_LED_COUNT> enlightArray;
   String enlightTemplateRenderer(const String& var);
 
  public:
-  void init();
+  void init(CFastLED *led, Preferences *pref);
   CRGB getColorFromNvram();
   size_t setColorToNvram(CRGB color);
+  CFastLED *fastLED;
+  UpdateClass updater;
 };
 
 #endif //ENLIGHT_SERVICE_H

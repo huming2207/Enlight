@@ -10,27 +10,28 @@
 #include <ESPmDNS.h>
 #include <SPIFFS.h>
 #include <AsyncJson.h>
+#include <updater.h>
 
-void Service::init()
+void Service::init(CFastLED *led, Preferences *pref)
 {
 
   bool forceOffline = false;
 
   // Load service settings
   log_i("Preference: loading LED preference with namespace \"enlight\"\n");
-  preferences.begin("enlight");
-
-  // Add some delay and see if it works
+  preferences = pref;
+  preferences->begin("enlight");
 
   // Load LEDs
-  FastLED.addLeds<NEOPIXEL, ENLIGHT_LED_DATA_BUS_PIN>(enlightArray, ENLIGHT_LED_COUNT);
+  fastLED = led;
+  fastLED->addLeds<NEOPIXEL, ENLIGHT_LED_DATA_BUS_PIN>(enlightArray, ENLIGHT_LED_COUNT);
 
   // If the lamp is not init, set to default settings with WiFi in AP mode
-  if (preferences.getBool("enlight_init", true)) {
+  if (preferences->getBool("enlight_init", true)) {
 
     // Init LEDs
     log_w("Preference: Settings are not present or corrupted, will be initialized!\n");
-    preferences.clear();
+    preferences->clear();
     CRGB initialRGB = Color::GetRgbFromColorTemp(ENLIGHT_DEFAULT_LED_COLOR_TEMP);
     copyColorToAllLed(enlightArray, initialRGB);
     setColorToNvram(initialRGB);
@@ -54,8 +55,8 @@ void Service::init()
     copyColorToAllLed(enlightArray, storedRGB);
 
     // Continue to connect WiFi
-    WiFi.begin(preferences.getString("wifi_ssid", ENLIGHT_DEFAULT_WIFI_SSID).c_str(),
-               preferences.getString("wifi_passwd", "").c_str());
+    WiFi.begin(preferences->getString("wifi_ssid", ENLIGHT_DEFAULT_WIFI_SSID).c_str(),
+               preferences->getString("wifi_passwd", "").c_str());
 
     // Wait some time until it connects
     uint8_t retryCount = 0;
@@ -88,6 +89,7 @@ void Service::init()
       MDNS.begin(deviceName.c_str());
     }
 
+    // Register MDNS service
     MDNS.addService("_http", "_tcp", 80);
 
 
@@ -100,8 +102,12 @@ void Service::init()
 void Service::webInit()
 {
 
+  // Mount filesystem
   log_d("Service: init filesystem...");
   SPIFFS.begin();
+
+  // Load OTA service
+  updater = UpdateClass();
 
   log_d("Service: init web service, registering handlers");
   webServer.on("/power",
@@ -132,6 +138,13 @@ void Service::webInit()
                HTTP_GET,
                std::bind(&Service::enlightInfoHandler, this, std::placeholders::_1));
 
+  webServer.on("/ota", HTTP_POST, [](AsyncWebServerRequest *request){ request->redirect("/ota.html"); },
+               std::bind(&Service::enlightOtaHandler, this, std::placeholders::_1));
+  
+  webServer.on("/ota_status", 
+               HTTP_GET, 
+               std::bind(&Service::enlightOtaStatusHandler, this, std::placeholders::_1));
+  
   webServer.serveStatic("/", SPIFFS, "/")
       .setTemplateProcessor(std::bind(&Service::enlightTemplateRenderer, this, std::placeholders::_1))
       .setDefaultFile("index.html");
@@ -151,9 +164,9 @@ void Service::webInit()
 CRGB Service::getColorFromNvram()
 {
 
-  return CRGB((__uint8_t) preferences.getUInt("red_led", 255),
-              (__uint8_t) preferences.getUInt("grn_led", 255),
-              (__uint8_t) preferences.getUInt("blu_led", 255));
+  return CRGB((__uint8_t) preferences->getUInt("red_led", 255),
+              (__uint8_t) preferences->getUInt("grn_led", 255),
+              (__uint8_t) preferences->getUInt("blu_led", 255));
 }
 
 /**
@@ -164,9 +177,9 @@ CRGB Service::getColorFromNvram()
 size_t Service::setColorToNvram(CRGB color)
 {
 
-  return preferences.putUInt("red_led", color.r)
-      + preferences.putUInt("grn_led", color.g)
-      + preferences.putUInt("blu_led", color.b);
+  return preferences->putUInt("red_led", color.r)
+      + preferences->putUInt("grn_led", color.g)
+      + preferences->putUInt("blu_led", color.b);
 }
 
 /**
@@ -179,15 +192,16 @@ void Service::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &col
   log_i("Color: copying color, r=%d, g=%d b=%d", color.r, color.g, color.b);
   for (uint8_t ledIndex = 0; ledIndex < ledArray.size(); ledIndex++) {
     ledArray[ledIndex] = color;
-    FastLED.show();
   }
+
+  fastLED->show();
 }
 
 void Service::enlightResetHandler(AsyncWebServerRequest *request)
 {
 
   if (request->hasArg("factory") && request->arg("factory").equals("true")) {
-    preferences.putBool("enlight_init", true);
+    preferences->putBool("enlight_init", true);
   }
 
   ESP.restart();
@@ -197,10 +211,10 @@ void Service::enlightSwitchHandler(AsyncWebServerRequest *request)
 {
 
   if (request->hasArg("switch") && request->arg("switch").equals("on")) {
-    FastLED.setBrightness((uint8_t) preferences.getUInt("led_bgt", 255));
+    fastLED->setBrightness((uint8_t) preferences->getUInt("led_bgt", 255));
     request->send(200, "text/plain", "OK");
   } else if (request->hasArg("switch") && request->arg("switch").equals("off")) {
-    FastLED.setBrightness(0);
+    fastLED->setBrightness(0);
     request->send(200, "text/plain", "OK");
   } else {
     request->send(400, "text/plain", "Bad Request");
@@ -251,7 +265,7 @@ void Service::enlightColorTempHandler(AsyncWebServerRequest * request)
     log_d("Color: got color %lu...", request->arg("value").toInt());
 
     copyColorToAllLed(enlightArray, color);
-    FastLED.show();
+    fastLED->show();
 
     request->send(200, "text/plain", "OK");
 
@@ -271,11 +285,11 @@ void Service::enlightBrightnessHandler(AsyncWebServerRequest *request)
 
     log_d("Brightness: setting to %d...", value);
 
-    FastLED.show(value);
+    fastLED->show(value);
 
     if (request->hasArg("save") && request->arg("save").equals("true")) {
       log_i("Preference: saving new brightness value to NVRAM...");
-      preferences.putUInt("save", value);
+      preferences->putUInt("save", value);
     }
 
     request->send(200, "text/plain", "OK");
@@ -292,18 +306,18 @@ void Service::enlightSettingHandler(AsyncWebServerRequest *request)
   // WiFi SSID
   if (request->hasArg("wifi_ssid")) {
     log_i("Preference: WiFi SSID has changed, new value: %s\n", request->arg("wifi_ssid"));
-    preferences.putString("wifi_ssid", request->arg("wifi_ssid"));
+    preferences->putString("wifi_ssid", request->arg("wifi_ssid"));
   }
 
   // WiFi Password
   if (request->hasArg("wifi_passwd")) {
     log_i("Preference: WiFi password has changed, new value: %s\n", request->arg("wifi_passwd"));
-    preferences.putString("wifi_passwd", request->arg("wifi_passwd"));
+    preferences->putString("wifi_passwd", request->arg("wifi_passwd"));
   }
 
   // Set init flag to true
   log_i("Preference: setting LED init flag to true...\n");
-  preferences.putBool("enlight_init", false);
+  preferences->putBool("enlight_init", false);
 
   request->send(200, "text/plain", "OK");
 }
@@ -320,7 +334,7 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
 
   // Add information to buffer
   infoObject["led_count"] = ENLIGHT_LED_COUNT;
-  infoObject["sys_inited"] = preferences.getBool("enlight_init", false);
+  infoObject["sys_inited"] = preferences->getBool("enlight_init", false);
   infoObject["sys_free_ram"] = ESP.getFreeHeap();
   infoObject["sys_sdk_ver"] = ESP.getSdkVersion();
   infoObject["sys_id"] = String((unsigned long) ESP.getEfuseMac(), HEX);
@@ -338,6 +352,56 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
   // ...same as SSID
   infoObject["net_ssid"] = (WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID();
   infoObject["net_sig"] = WiFi.RSSI();
+
+  // Now prepare to send out the stream buffer
+  response->setContentType("application/json");
+  response->setCode(200);
+
+  // Get the length
+  response->setLength();
+
+  // Send to user
+  request->send(response);
+}
+
+void Service::enlightOtaHandler(AsyncWebServerRequest *request, String filename, size_t index,
+                                uint8_t *data, size_t len, bool final)
+{
+  // Originally implemented by JMishou, ref: https://gist.github.com/JMishou/60cb762047b735685e8a09cd2eb42a60
+  // if index == 0 then this is the first frame of data
+  if(!index){
+    log_i("UploadStart: %s\n", filename.c_str());
+
+    if(!updater.begin()){
+      updater.printError(Serial);
+    }
+  }
+
+  // Write chunked data to the free sketch space
+  if(updater.write(data, len) != len){
+    updater.printError(Serial);
+  }
+
+  // If the final flag is set then this is the last frame of data
+  if(final) {
+    if(updater.end(true)) {
+      log_i("Update Success: %u B\nRebooting...\n", index+len);
+      ESP.restart();
+    } else {
+      updater.printError(Serial);
+    }
+  }
+}
+
+void Service::enlightOtaStatusHandler(AsyncWebServerRequest *request)
+{
+  // Encode JSON and send it to user
+  AsyncJsonResponse *response = new AsyncJsonResponse();
+  JsonObject &infoObject = response->getRoot();
+  String errorStatus;
+
+  infoObject["progress"] = updater.progress();
+  infoObject["error"] = updater.getError();
 
   // Now prepare to send out the stream buffer
   response->setContentType("application/json");
@@ -374,6 +438,20 @@ String Service::enlightTemplateRenderer(const String &var)
     return (ENLIGHT_VERSION_FULL);
   }
 
+  // Return OTA status
+  if(var == "OTA_STATUS") {
+    return String(updater.progress());
+  }
+
+  // Return error code if exists
+  if(var == "OTA_ERROR") {
+    if(updater.getError() != 0) {
+      return String("Got error, please contact author with code mentioned: " + String(updater.getError()));
+    } else {
+      return "";
+    }
+  }
+
   // Return serial number (EfuseMac)
   if (var == "EFUSE_SN") {
     return (String((unsigned long) ESP.getEfuseMac(), HEX));
@@ -381,3 +459,5 @@ String Service::enlightTemplateRenderer(const String &var)
 
   return String();
 }
+
+
