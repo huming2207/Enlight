@@ -5,12 +5,12 @@
 #include "Service.h"
 #include "main.h"
 #include "Color.h"
+#include "Helpers.h"
 
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
 #include <SPIFFS.h>
 #include <AsyncJson.h>
-#include <updater.h>
 
 void Service::init(CFastLED *led, Preferences *pref)
 {
@@ -23,18 +23,19 @@ void Service::init(CFastLED *led, Preferences *pref)
   preferences->begin("enlight");
 
   // Load LEDs
+  log_i("LED: init LED arrays...");
   fastLED = led;
   fastLED->addLeds<NEOPIXEL, ENLIGHT_LED_DATA_BUS_PIN>(enlightArray, ENLIGHT_LED_COUNT);
 
   // If the lamp is not init, set to default settings with WiFi in AP mode
-  if (preferences->getBool("enlight_init", true)) {
+  if (preferences->getBool(ENLIGHT_NVRAM_INIT_FLAG, true)) {
 
     // Init LEDs
     log_w("Preference: Settings are not present or corrupted, will be initialized!\n");
     preferences->clear();
     CRGB initialRGB = Color::GetRgbFromColorTemp(ENLIGHT_DEFAULT_LED_COLOR_TEMP);
     copyColorToAllLed(enlightArray, initialRGB);
-    setColorToNvram(initialRGB);
+    Helpers::setColorToNvram(initialRGB, preferences);
 
     // Init network
     log_w("Network: network is not yet configured, will load in AP mode anyway...");
@@ -51,12 +52,12 @@ void Service::init(CFastLED *led, Preferences *pref)
   } else {
 
     log_w("Preference: LED settings found!\n");
-    CRGB storedRGB = getColorFromNvram();
+    CRGB storedRGB = Helpers::getColorFromNvram(preferences);
     copyColorToAllLed(enlightArray, storedRGB);
 
     // Continue to connect WiFi
-    WiFi.begin(preferences->getString("wifi_ssid", ENLIGHT_DEFAULT_WIFI_SSID).c_str(),
-               preferences->getString("wifi_passwd", "").c_str());
+    WiFi.begin(preferences->getString(ENLIGHT_NVRAM_WIFI_SSID, ENLIGHT_DEFAULT_WIFI_SSID).c_str(),
+               preferences->getString(ENLIGHT_NVRAM_WIFI_PASSWORD, "").c_str());
 
     // Wait some time until it connects
     uint8_t retryCount = 0;
@@ -109,6 +110,7 @@ void Service::webInit()
   // Load OTA service
   updater = UpdateClass();
 
+  // Register web service nodes
   log_d("Service: init web service, registering handlers");
   webServer.on("/power",
                HTTP_GET,
@@ -138,8 +140,18 @@ void Service::webInit()
                HTTP_GET,
                std::bind(&Service::enlightInfoHandler, this, std::placeholders::_1));
 
+  webServer.on("/save",
+               HTTP_GET,
+               std::bind(&Service::enlightSaveHandler, this, std::placeholders::_1));
+
   webServer.on("/ota", HTTP_POST, [](AsyncWebServerRequest *request){ request->redirect("/ota.html"); },
-               std::bind(&Service::enlightOtaHandler, this, std::placeholders::_1));
+               std::bind(&Service::enlightOtaHandler, this,
+                         std::placeholders::_1,
+                         std::placeholders::_2,
+                         std::placeholders::_3,
+                         std::placeholders::_4,
+                         std::placeholders::_5,
+                         std::placeholders::_6)); // 6 parameters here, so 6 placeholders are necessary
   
   webServer.on("/ota_status", 
                HTTP_GET, 
@@ -153,33 +165,6 @@ void Service::webInit()
   webServer.serveStatic("/common", SPIFFS, "/ui").setCacheControl("max-age=31536000");
 
   webServer.begin();
-
-  log_i("Web: Service loaded at http://%s", WiFi.localIP().toString().c_str());
-}
-
-/**
- * Get color value from NVRAM and return in CRGB LED object
- * @return Color in CRGB LED object
- */
-CRGB Service::getColorFromNvram()
-{
-
-  return CRGB((__uint8_t) preferences->getUInt("red_led", 255),
-              (__uint8_t) preferences->getUInt("grn_led", 255),
-              (__uint8_t) preferences->getUInt("blu_led", 255));
-}
-
-/**
- * Set color value in CRGB LED object
- * @param color CRGB LED object
- * @return Size of saved data
- */
-size_t Service::setColorToNvram(CRGB color)
-{
-
-  return preferences->putUInt("red_led", color.r)
-      + preferences->putUInt("grn_led", color.g)
-      + preferences->putUInt("blu_led", color.b);
 }
 
 /**
@@ -201,17 +186,24 @@ void Service::enlightResetHandler(AsyncWebServerRequest *request)
 {
 
   if (request->hasArg("factory") && request->arg("factory").equals("true")) {
-    preferences->putBool("enlight_init", true);
+    preferences->putBool(ENLIGHT_NVRAM_INIT_FLAG, true);
+
+    log_w("Reset: Got factory reset request, will reboot and continue!");
+    ESP.restart();
+
+
+  } else {
+    request->send(400, "text/plain", "Bad Request");
   }
 
-  ESP.restart();
+
 }
 
 void Service::enlightSwitchHandler(AsyncWebServerRequest *request)
 {
 
   if (request->hasArg("switch") && request->arg("switch").equals("on")) {
-    fastLED->setBrightness((uint8_t) preferences->getUInt("led_bgt", 255));
+    fastLED->setBrightness((uint8_t) preferences->getUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, 255));
     request->send(200, "text/plain", "OK");
   } else if (request->hasArg("switch") && request->arg("switch").equals("off")) {
     fastLED->setBrightness(0);
@@ -239,11 +231,6 @@ void Service::enlightColorHandler(AsyncWebServerRequest *request)
     log_i("Color: converted to uint32_t: %u", colorValue);
 
     CRGB color = CRGB(colorValue);
-
-    if (request->hasArg("save") && request->arg("save").equals("true")) {
-      log_i("Preference: saving color settings to NVRAM");
-      setColorToNvram(color);
-    }
 
     copyColorToAllLed(enlightArray, color);
 
@@ -289,7 +276,7 @@ void Service::enlightBrightnessHandler(AsyncWebServerRequest *request)
 
     if (request->hasArg("save") && request->arg("save").equals("true")) {
       log_i("Preference: saving new brightness value to NVRAM...");
-      preferences->putUInt("save", value);
+      preferences->putUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, value);
     }
 
     request->send(200, "text/plain", "OK");
@@ -304,20 +291,20 @@ void Service::enlightSettingHandler(AsyncWebServerRequest *request)
 
   // Save to NVRAM
   // WiFi SSID
-  if (request->hasArg("wifi_ssid")) {
+  if (request->hasArg(ENLIGHT_NVRAM_WIFI_SSID)) {
     log_i("Preference: WiFi SSID has changed, new value: %s\n", request->arg("wifi_ssid"));
-    preferences->putString("wifi_ssid", request->arg("wifi_ssid"));
+    preferences->putString(ENLIGHT_NVRAM_WIFI_SSID, request->arg(ENLIGHT_NVRAM_WIFI_SSID));
   }
 
   // WiFi Password
-  if (request->hasArg("wifi_passwd")) {
-    log_i("Preference: WiFi password has changed, new value: %s\n", request->arg("wifi_passwd"));
-    preferences->putString("wifi_passwd", request->arg("wifi_passwd"));
+  if (request->hasArg(ENLIGHT_NVRAM_WIFI_PASSWORD)) {
+    log_i("Preference: WiFi password has changed, new value: %s\n", request->arg(ENLIGHT_NVRAM_WIFI_PASSWORD));
+    preferences->putString(ENLIGHT_NVRAM_WIFI_PASSWORD, request->arg(ENLIGHT_NVRAM_WIFI_PASSWORD));
   }
 
   // Set init flag to true
   log_i("Preference: setting LED init flag to true...\n");
-  preferences->putBool("enlight_init", false);
+  preferences->putBool(ENLIGHT_NVRAM_INIT_FLAG, false);
 
   request->send(200, "text/plain", "OK");
 }
@@ -329,12 +316,12 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
   deviceName = deviceName.substring(deviceName.length() - 6);
 
   // Encode JSON and send it to user
-  AsyncJsonResponse *response = new AsyncJsonResponse();
+  auto *response = new AsyncJsonResponse();
   JsonObject &infoObject = response->getRoot();
 
   // Add information to buffer
   infoObject["led_count"] = ENLIGHT_LED_COUNT;
-  infoObject["sys_inited"] = preferences->getBool("enlight_init", false);
+  infoObject["sys_inited"] = preferences->getBool(ENLIGHT_NVRAM_INIT_FLAG, false);
   infoObject["sys_free_ram"] = ESP.getFreeHeap();
   infoObject["sys_sdk_ver"] = ESP.getSdkVersion();
   infoObject["sys_id"] = String((unsigned long) ESP.getEfuseMac(), HEX);
@@ -373,12 +360,14 @@ void Service::enlightOtaHandler(AsyncWebServerRequest *request, String filename,
     log_i("UploadStart: %s\n", filename.c_str());
 
     if(!updater.begin()){
+      log_e("OtaUpload: fucked up, reason: ");
       updater.printError(Serial);
     }
   }
 
   // Write chunked data to the free sketch space
   if(updater.write(data, len) != len){
+    log_e("OtaUpload: fucked up, reason: ");
     updater.printError(Serial);
   }
 
@@ -396,7 +385,7 @@ void Service::enlightOtaHandler(AsyncWebServerRequest *request, String filename,
 void Service::enlightOtaStatusHandler(AsyncWebServerRequest *request)
 {
   // Encode JSON and send it to user
-  AsyncJsonResponse *response = new AsyncJsonResponse();
+  auto *response = new AsyncJsonResponse();
   JsonObject &infoObject = response->getRoot();
   String errorStatus;
 
@@ -412,6 +401,28 @@ void Service::enlightOtaStatusHandler(AsyncWebServerRequest *request)
 
   // Send to user
   request->send(response);
+}
+
+void Service::enlightSaveHandler(AsyncWebServerRequest *request)
+{
+  CRGB color = *fastLED->leds();
+  if(request->hasArg("cmd") && request->arg("cmd").equals("save")) {
+
+    log_i("Save: saving current LED settings to NVRAM...");
+    Helpers::setColorToNvram(color, preferences);
+    preferences->putUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, fastLED->getBrightness());
+    request->send(200, "text/plain", "OK");
+
+  } else if(request->hasArg("cmd") && request->arg("cmd").equals("reset")) {
+    
+    log_i("Save: resetting default LED settings to NVRAM...");
+    preferences->putUInt(ENLIGHT_NVRAM_LED_COLOR, 0xFFFFFF);
+    preferences->putUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, 255);
+    request->send(200, "text/plain", "OK");
+    
+  } else {
+    request->send(400, "text/plain", "Bad Request");
+  }
 }
 
 String Service::enlightTemplateRenderer(const String &var)

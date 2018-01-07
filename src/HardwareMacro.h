@@ -5,21 +5,7 @@
 #ifndef ENLIGHT_HARDWARE_H
 #define ENLIGHT_HARDWARE_H
 
-/**
- *
- * NVRAM map:
- *
- * init_net     Main Network initialisation init flag        bool
- * init_led     Main LED initialisation init flag,           bool
- * led_red      Red LED's color,                             uint_8
- * led_grn      Green LED's color,                           uint_8
- * led_blu      Blue LED's color,                            uint_8
- * led_bgt      LED Brightness,                              uint_8
- * wifi_ssid    WiFi SSID                                    string
- * wifi_passwd  WiFi Password                                string         Note: if no password then fill "nu11"
- *
- */
-
+// Hardware pin maps
 // SK6812/WS2812 LED count on the bus
 #define ENLIGHT_LED_COUNT                           6
 
