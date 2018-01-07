@@ -144,7 +144,9 @@ void Service::webInit()
                HTTP_GET,
                std::bind(&Service::enlightSaveHandler, this, std::placeholders::_1));
 
-  webServer.on("/ota", HTTP_POST, [](AsyncWebServerRequest *request){ request->redirect("/ota.html"); },
+  webServer.on("/ota", HTTP_POST, [](AsyncWebServerRequest *request){
+                 request->send(200); // Looks like it doesn't really works
+               },
                std::bind(&Service::enlightOtaHandler, this,
                          std::placeholders::_1,
                          std::placeholders::_2,
@@ -152,10 +154,6 @@ void Service::webInit()
                          std::placeholders::_4,
                          std::placeholders::_5,
                          std::placeholders::_6)); // 6 parameters here, so 6 placeholders are necessary
-  
-  webServer.on("/ota_status", 
-               HTTP_GET, 
-               std::bind(&Service::enlightOtaStatusHandler, this, std::placeholders::_1));
   
   webServer.serveStatic("/", SPIFFS, "/")
       .setTemplateProcessor(std::bind(&Service::enlightTemplateRenderer, this, std::placeholders::_1))
@@ -244,8 +242,8 @@ void Service::enlightColorHandler(AsyncWebServerRequest *request)
 void Service::enlightColorTempHandler(AsyncWebServerRequest * request)
 {
   if (request->hasArg("value") 
-      && request->arg("value").toInt() < 40000
-      && request->arg("value").toInt() > 1000) {
+      && request->arg("value").toInt() <= 40000
+      && request->arg("value").toInt() >= 1000) {
 
     CRGB color = Color::GetRgbFromColorTemp(request->arg("value").toInt());
 
@@ -269,17 +267,10 @@ void Service::enlightBrightnessHandler(AsyncWebServerRequest *request)
   if (request->hasArg("value")) {
 
     uint8_t value = (uint8_t) request->arg("value").toInt();
-
     log_d("Brightness: setting to %d...", value);
-
     fastLED->show(value);
-
-    if (request->hasArg("save") && request->arg("save").equals("true")) {
-      log_i("Preference: saving new brightness value to NVRAM...");
-      preferences->putUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, value);
-    }
-
     request->send(200, "text/plain", "OK");
+
 
   } else {
     request->send(400, "text/plain", "Bad Request");
@@ -357,50 +348,53 @@ void Service::enlightOtaHandler(AsyncWebServerRequest *request, String filename,
   // Originally implemented by JMishou, ref: https://gist.github.com/JMishou/60cb762047b735685e8a09cd2eb42a60
   // if index == 0 then this is the first frame of data
   if(!index){
-    log_i("UploadStart: %s\n", filename.c_str());
+    log_i("OTA: got image: %s\n", filename.c_str());
 
     if(!updater.begin()){
-      log_e("OtaUpload: fucked up, reason: ");
+      log_e("OTA: congrats, you've fucked up with an error code: ", updater.getError());
+
+      String errorStr = "<script>alert('Firmware upgrade failed, error code: ";
+      errorStr += updater.getError();
+      errorStr += "');</script>";
+      request->send(200, "text/html", errorStr.c_str());
       updater.printError(Serial);
+
+      delay(1000);
+      ESP.restart();
     }
   }
 
   // Write chunked data to the free sketch space
   if(updater.write(data, len) != len){
-    log_e("OtaUpload: fucked up, reason: ");
+    log_e("OTA: congrats, you've fucked up with an error code: ", updater.getError());
+    String errorStr = "<script>alert('Firmware upgrade failed, error code: ";
+    errorStr += updater.getError();
+    errorStr += "');</script>";
+    request->send(200, "text/html", errorStr.c_str());
     updater.printError(Serial);
+
+    delay(1000);
+    ESP.restart();
   }
 
   // If the final flag is set then this is the last frame of data
   if(final) {
     if(updater.end(true)) {
-      log_i("Update Success: %u B\nRebooting...\n", index+len);
+      request->send(200, "text/html",
+                    "<script>"
+                        "alert('Firmware updated, please wait until your device connects to your network again');"
+                    "</script>");
+
+      log_i("OTA: %u bypes written, rebooting...", index+len);
+
+      // Add some delay to wait until the request send out
+      delay(1000);
       ESP.restart();
     } else {
       updater.printError(Serial);
+      request->send(500, "text/plain", String("Error, code #" + updater.getError()));
     }
   }
-}
-
-void Service::enlightOtaStatusHandler(AsyncWebServerRequest *request)
-{
-  // Encode JSON and send it to user
-  auto *response = new AsyncJsonResponse();
-  JsonObject &infoObject = response->getRoot();
-  String errorStatus;
-
-  infoObject["progress"] = updater.progress();
-  infoObject["error"] = updater.getError();
-
-  // Now prepare to send out the stream buffer
-  response->setContentType("application/json");
-  response->setCode(200);
-
-  // Get the length
-  response->setLength();
-
-  // Send to user
-  request->send(response);
 }
 
 void Service::enlightSaveHandler(AsyncWebServerRequest *request)
@@ -447,20 +441,6 @@ String Service::enlightTemplateRenderer(const String &var)
   // Return firmware version
   if (var == "FIRM_VERSION") {
     return (ENLIGHT_VERSION_FULL);
-  }
-
-  // Return OTA status
-  if(var == "OTA_STATUS") {
-    return String(updater.progress());
-  }
-
-  // Return error code if exists
-  if(var == "OTA_ERROR") {
-    if(updater.getError() != 0) {
-      return String("Got error, please contact author with code mentioned: " + String(updater.getError()));
-    } else {
-      return "";
-    }
   }
 
   // Return serial number (EfuseMac)

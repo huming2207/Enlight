@@ -12,7 +12,6 @@ volatile uint16_t colorTemp = 1000;
 
 void setup()
 {
-
   // Main setup begins
   Serial.begin(115200);
   Serial.setDebugOutput(true);

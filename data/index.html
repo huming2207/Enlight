@@ -16,6 +16,9 @@
     <a class="item" href="#settings">
         Settings
     </a>
+    <a class="item" href="/about.html">
+        About Enlight
+    </a>
 </div>
 <div class="ui text container">
 
@@ -39,7 +42,7 @@
         <form class="ui form">
             <div class="center field">
                 <label for="temp-slider">Color temperature: </label>
-                <input type="range" name="value" style="width:100%" id="temp-slider" min="1000" max="10000"
+                <input type="range" name="value" style="width:100%" id="temp-slider" min="1000" max="7000" value="5500"
                        onchange="onTempSliderChange()">
             </div>
         </form>
@@ -49,7 +52,7 @@
         <form class="ui form">
             <div class="center field">
                 <label for="bright-slider">Brightness: </label>
-                <input type="range" name="value" style="width:100%" id="bright-slider" min="0" max="255"
+                <input type="range" name="value" style="width:100%" id="bright-slider" min="0" max="255" value="200"
                        onchange="onBrightSliderChange()">
             </div>
         </form>

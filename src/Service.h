@@ -28,7 +28,6 @@ class Service
   void enlightColorTempHandler(AsyncWebServerRequest * request);
   void enlightOtaHandler(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
   void enlightSaveHandler(AsyncWebServerRequest *request);
-  void enlightOtaStatusHandler(AsyncWebServerRequest *request);
   CRGBArray<ENLIGHT_LED_COUNT> enlightArray;
   String enlightTemplateRenderer(const String& var);
 
