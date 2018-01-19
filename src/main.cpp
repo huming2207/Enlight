@@ -85,11 +85,11 @@ void loop()
   // If key pressed, then switch it off.
   } else if(keyPressed) {
 
-    if(fastLED.getBrightness() != 0) {
+    /*if(fastLED.getBrightness() != 0) {
       fastLED.setBrightness((uint8_t)preferences.getUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, 255));
     } else {
       fastLED.setBrightness(0);
-    }
+    } */
 
   }
 

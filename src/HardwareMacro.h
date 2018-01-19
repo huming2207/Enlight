@@ -7,7 +7,7 @@
 
 // Hardware pin maps
 // SK6812/WS2812 LED count on the bus
-#define ENLIGHT_LED_COUNT                           6
+#define ENLIGHT_LED_COUNT                           23
 
 // SK6812/WS2812 LED data bus pin
 #define ENLIGHT_LED_DATA_BUS_PIN                    0
