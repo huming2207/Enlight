@@ -12,7 +12,7 @@
 #include <SPIFFS.h>
 #include <AsyncJson.h>
 
-void Service::init(CFastLED *led, Preferences *pref)
+void WebService::init(CFastLED *led, Preferences *pref)
 {
 
   bool forceOffline = false;
@@ -100,54 +100,54 @@ void Service::init(CFastLED *led, Preferences *pref)
 
 }
 
-void Service::webInit()
+void WebService::webInit()
 {
 
   // Mount filesystem
-  log_d("Service: init filesystem...");
+  log_d("WebService: init filesystem...");
   SPIFFS.begin();
 
   // Load OTA service
   updater = UpdateClass();
 
   // Register web service nodes
-  log_d("Service: init web service, registering handlers");
+  log_d("WebService: init web service, registering handlers");
   webServer.on("/power",
                HTTP_GET,
-               std::bind(&Service::enlightSwitchHandler, this, std::placeholders::_1));
+               std::bind(&WebService::enlightSwitchHandler, this, std::placeholders::_1));
 
   webServer.on("/reset",
                HTTP_GET,
-               std::bind(&Service::enlightResetHandler, this, std::placeholders::_1));
+               std::bind(&WebService::enlightResetHandler, this, std::placeholders::_1));
 
   webServer.on("/color",
                HTTP_GET,
-               std::bind(&Service::enlightColorHandler, this, std::placeholders::_1));
+               std::bind(&WebService::enlightColorHandler, this, std::placeholders::_1));
 
   webServer.on("/temp",
                 HTTP_GET,
-                std::bind(&Service::enlightColorTempHandler, this, std::placeholders::_1));
+                std::bind(&WebService::enlightColorTempHandler, this, std::placeholders::_1));
 
   webServer.on("/bright",
                HTTP_GET,
-               std::bind(&Service::enlightBrightnessHandler, this, std::placeholders::_1));
+               std::bind(&WebService::enlightBrightnessHandler, this, std::placeholders::_1));
 
   webServer.on("/setting",
                HTTP_POST,
-               std::bind(&Service::enlightSettingHandler, this, std::placeholders::_1));
+               std::bind(&WebService::enlightSettingHandler, this, std::placeholders::_1));
 
   webServer.on("/info",
                HTTP_GET,
-               std::bind(&Service::enlightInfoHandler, this, std::placeholders::_1));
+               std::bind(&WebService::enlightInfoHandler, this, std::placeholders::_1));
 
   webServer.on("/save",
                HTTP_GET,
-               std::bind(&Service::enlightSaveHandler, this, std::placeholders::_1));
+               std::bind(&WebService::enlightSaveHandler, this, std::placeholders::_1));
 
   webServer.on("/ota", HTTP_POST, [](AsyncWebServerRequest *request){
                  request->send(200); // Looks like it doesn't really works
                },
-               std::bind(&Service::enlightOtaHandler, this,
+               std::bind(&WebService::enlightOtaHandler, this,
                          std::placeholders::_1,
                          std::placeholders::_2,
                          std::placeholders::_3,
@@ -156,7 +156,7 @@ void Service::webInit()
                          std::placeholders::_6)); // 6 parameters here, so 6 placeholders are necessary
   
   webServer.serveStatic("/", SPIFFS, "/")
-      .setTemplateProcessor(std::bind(&Service::enlightTemplateRenderer, this, std::placeholders::_1))
+      .setTemplateProcessor(std::bind(&WebService::enlightTemplateRenderer, this, std::placeholders::_1))
       .setDefaultFile("index.html");
 
   // Separate resource out from root, as the template engine will fuck up the CSS
@@ -170,7 +170,7 @@ void Service::webInit()
  * @param ledArray LED array
  * @param color Reference of color in CRGB LED object
  */
-void Service::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color)
+void WebService::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color)
 {
   log_i("Color: copying color, r=%d, g=%d b=%d", color.r, color.g, color.b);
   for (uint8_t ledIndex = 0; ledIndex < ledArray.size(); ledIndex++) {
@@ -180,7 +180,7 @@ void Service::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &col
   fastLED->show();
 }
 
-void Service::enlightResetHandler(AsyncWebServerRequest *request)
+void WebService::enlightResetHandler(AsyncWebServerRequest *request)
 {
 
   if (request->hasArg("factory") && request->arg("factory").equals("true")) {
@@ -197,7 +197,7 @@ void Service::enlightResetHandler(AsyncWebServerRequest *request)
 
 }
 
-void Service::enlightSwitchHandler(AsyncWebServerRequest *request)
+void WebService::enlightSwitchHandler(AsyncWebServerRequest *request)
 {
 
   if (request->hasArg("switch") && request->arg("switch").equals("on")) {
@@ -211,7 +211,7 @@ void Service::enlightSwitchHandler(AsyncWebServerRequest *request)
   }
 }
 
-void Service::enlightColorHandler(AsyncWebServerRequest *request)
+void WebService::enlightColorHandler(AsyncWebServerRequest *request)
 {
   if (request->hasArg("value")
       && request->arg("value").charAt(0) == '#') {
@@ -239,7 +239,7 @@ void Service::enlightColorHandler(AsyncWebServerRequest *request)
   }
 }
 
-void Service::enlightColorTempHandler(AsyncWebServerRequest * request)
+void WebService::enlightColorTempHandler(AsyncWebServerRequest * request)
 {
   if (request->hasArg("value") 
       && request->arg("value").toInt() <= 40000
@@ -259,7 +259,7 @@ void Service::enlightColorTempHandler(AsyncWebServerRequest * request)
   }
 }
 
-void Service::enlightBrightnessHandler(AsyncWebServerRequest *request)
+void WebService::enlightBrightnessHandler(AsyncWebServerRequest *request)
 {
 
   log_d("Brightness: got brightness request...\n");
@@ -277,7 +277,7 @@ void Service::enlightBrightnessHandler(AsyncWebServerRequest *request)
   }
 }
 
-void Service::enlightSettingHandler(AsyncWebServerRequest *request)
+void WebService::enlightSettingHandler(AsyncWebServerRequest *request)
 {
 
   // Save to NVRAM
@@ -300,7 +300,7 @@ void Service::enlightSettingHandler(AsyncWebServerRequest *request)
   request->send(200, "text/plain", "OK");
 }
 
-void Service::enlightInfoHandler(AsyncWebServerRequest *request)
+void WebService::enlightInfoHandler(AsyncWebServerRequest *request)
 {
   // Get device name
   String deviceName = String((unsigned long) ESP.getEfuseMac(), HEX);
@@ -342,7 +342,7 @@ void Service::enlightInfoHandler(AsyncWebServerRequest *request)
   request->send(response);
 }
 
-void Service::enlightOtaHandler(AsyncWebServerRequest *request, String filename, size_t index,
+void WebService::enlightOtaHandler(AsyncWebServerRequest *request, String filename, size_t index,
                                 uint8_t *data, size_t len, bool final)
 {
   // Originally implemented by JMishou, ref: https://gist.github.com/JMishou/60cb762047b735685e8a09cd2eb42a60
@@ -397,7 +397,7 @@ void Service::enlightOtaHandler(AsyncWebServerRequest *request, String filename,
   }
 }
 
-void Service::enlightSaveHandler(AsyncWebServerRequest *request)
+void WebService::enlightSaveHandler(AsyncWebServerRequest *request)
 {
   CRGB color = *fastLED->leds();
   if(request->hasArg("cmd") && request->arg("cmd").equals("save")) {
@@ -419,7 +419,7 @@ void Service::enlightSaveHandler(AsyncWebServerRequest *request)
   }
 }
 
-String Service::enlightTemplateRenderer(const String &var)
+String WebService::enlightTemplateRenderer(const String &var)
 {
   // Return WiFi SSID
   if (var == "WIFI_SSID") {

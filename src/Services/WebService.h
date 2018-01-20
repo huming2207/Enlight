@@ -11,7 +11,7 @@
 #include <Update.h>
 #include "Defaults/Pinmaps.h"
 
-class Service
+class WebService
 {
 
  private:
