@@ -3,7 +3,7 @@
 //
 
 #include "Helpers.h"
-#include "FirmwareMacro.h"
+#include "Firmware.h"
 
 CRGB Helpers::getColorFromNvram(Preferences *preferences)
 {

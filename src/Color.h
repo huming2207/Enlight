@@ -5,7 +5,7 @@
 #ifndef ENLIGHT_COLOR_H
 #define ENLIGHT_COLOR_H
 
-#include "FirmwareMacro.h"
+#include "Firmware.h"
 
 #include <FastLED.h>
 

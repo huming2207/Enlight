@@ -2,7 +2,7 @@
 // Created by Ming Hu on 31/12/17.
 //
 
-#include "Service.h"
+#include "WebService.h"
 #include "main.h"
 #include "Color.h"
 #include "Helpers.h"

@@ -9,7 +9,7 @@
 #include <Preferences.h>
 #include <FastLED.h>
 #include <Update.h>
-#include "HardwareMacro.h"
+#include "Pinmaps.h"
 
 class Service
 {
