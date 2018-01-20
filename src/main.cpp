@@ -1,6 +1,6 @@
 #include "main.h"
-#include "WebService.h"
-#include "Color.h"
+#include "Services/WebService.h"
+#include "Helpers/Color.h"
 
 #include <Arduino.h>
 

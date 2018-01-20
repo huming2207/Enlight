@@ -5,6 +5,6 @@
 #ifndef ENLIGHT_MAIN_H
 #define ENLIGHT_MAIN_H
 
-#include <Firmware.h>
+#include <Defaults/Firmware.h>
 
 #endif //ENLIGHT_MAIN_H

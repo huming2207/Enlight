@@ -2,8 +2,8 @@
 // Created by Ming Hu on 7/1/18.
 //
 
-#ifndef ENLIGHT_HELPERS_H
-#define ENLIGHT_HELPERS_H
+#ifndef ENLIGHT_NVRAM_HELPER_H
+#define ENLIGHT_NVRAM_HELPER_H
 
 #include <FastLED.h>
 #include <Preferences.h>
@@ -17,4 +17,4 @@ class Helpers
   static uint32_t rgbToColorCode(uint8_t red, uint8_t green, uint8_t blue);
 };
 
-#endif //ENLIGHT_HELPERS_H
+#endif //ENLIGHT_NVRAM_HELPER_H

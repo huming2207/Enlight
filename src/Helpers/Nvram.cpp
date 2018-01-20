@@ -2,8 +2,8 @@
 // Created by Ming Hu on 7/1/18.
 //
 
-#include "Helpers.h"
-#include "Firmware.h"
+#include "Nvram.h"
+#include "Defaults/Firmware.h"
 
 CRGB Helpers::getColorFromNvram(Preferences *preferences)
 {

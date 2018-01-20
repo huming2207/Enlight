@@ -4,8 +4,8 @@
 
 #include "WebService.h"
 #include "main.h"
-#include "Color.h"
-#include "Helpers.h"
+#include "Helpers/Color.h"
+#include "Helpers/Nvram.h"
 
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
