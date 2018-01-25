@@ -12,6 +12,12 @@
 #include <SPIFFS.h>
 #include <AsyncJson.h>
 
+/**
+ * Initialise all stuff for web/wifi service
+ *
+ * @param led FastLED object, should be uninitialised
+ * @param pref Preferences object, also should be uninitialised
+ */
 void WebService::init(CFastLED *led, Preferences *pref)
 {
 
@@ -34,8 +40,8 @@ void WebService::init(CFastLED *led, Preferences *pref)
     log_w("Preference: Settings are not present or corrupted, will be initialized!\n");
     preferences->clear();
     CRGB initialRGB = Color::GetRgbFromColorTemp(ENLIGHT_DEFAULT_LED_COLOR_TEMP);
-    copyColorToAllLed(enlightArray, initialRGB);
-    Helpers::setColorToNvram(initialRGB, preferences);
+    Color::copyColorToAllLed(enlightArray, initialRGB, fastLED);
+    Nvram::setColorToNvram(initialRGB, preferences);
 
     // Init network
     log_w("Network: network is not yet configured, will load in AP mode anyway...");
@@ -52,8 +58,8 @@ void WebService::init(CFastLED *led, Preferences *pref)
   } else {
 
     log_w("Preference: LED settings found!\n");
-    CRGB storedRGB = Helpers::getColorFromNvram(preferences);
-    copyColorToAllLed(enlightArray, storedRGB);
+    CRGB storedRGB = Nvram::getColorFromNvram(preferences);
+    Color::copyColorToAllLed(enlightArray, storedRGB, fastLED);
 
     // Continue to connect WiFi
     WiFi.begin(preferences->getString(ENLIGHT_NVRAM_WIFI_SSID, ENLIGHT_DEFAULT_WIFI_SSID).c_str(),
@@ -100,6 +106,9 @@ void WebService::init(CFastLED *led, Preferences *pref)
 
 }
 
+/**
+ * Register all handlers for the web server framework
+ */
 void WebService::webInit()
 {
 
@@ -159,27 +168,37 @@ void WebService::webInit()
       .setTemplateProcessor(std::bind(&WebService::enlightTemplateRenderer, this, std::placeholders::_1))
       .setDefaultFile("index.html");
 
-  // Separate resource out from root, as the template engine will fuck up the CSS
+  /*
+   * Here we've set the UI path to another fake one, due to:
+   * 1. separating resource out from root, as the template engine will fuck up the CSS
+   * 2. Cache-Control header has been set to the longest value to ensure the page can be loaded as fast as possible.
+   *
+   * When modifying the frontend stuff,
+   *  we need to change the path back to "ui" and change it back to "common" later when deploying.
+   */
   webServer.serveStatic("/common", SPIFFS, "/ui").setCacheControl("max-age=31536000");
 
   webServer.begin();
 }
 
+
 /**
- * Iterative all LEDs in the array and copy all colors to it
- * @param ledArray LED array
- * @param color Reference of color in CRGB LED object
+ * Enlight reset request handler,
+ *
+ * Endpoint:
+ * http://ENLIGHT_IP/reset
+ *
+ * Parameter:
+ * - factory:
+ *      - "true": will perform factory reset, ALL SETTINGS WILL BE WIPED
+ *      - "false": will perform a simple CPU reset (i.e. reboot)
+ *
+ * Returns:
+ * NOTHING if successful, or
+ * HTTP 400 with string "Bad Request" if failed.
+ *
+ * @param request
  */
-void WebService::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color)
-{
-  log_i("Color: copying color, r=%d, g=%d b=%d", color.r, color.g, color.b);
-  for (uint8_t ledIndex = 0; ledIndex < ledArray.size(); ledIndex++) {
-    ledArray[ledIndex] = color;
-  }
-
-  fastLED->show();
-}
-
 void WebService::enlightResetHandler(AsyncWebServerRequest *request)
 {
 
@@ -197,6 +216,22 @@ void WebService::enlightResetHandler(AsyncWebServerRequest *request)
 
 }
 
+/**
+ * Enlight power switch handler,
+ *
+ * Endpoint:
+ * http://ENLIGHT_IP/power
+ *
+ * Parameter:
+ * - "on" when user need to turn the light on
+ * - "off" when user need to turn the light off
+ *
+ * Returns:
+ * HTTP 200 with string “OK” if successful, or
+ * HTTP 400 with string "Bad Request" if failed.
+ *
+ * @param request
+ */
 void WebService::enlightSwitchHandler(AsyncWebServerRequest *request)
 {
 
@@ -211,6 +246,21 @@ void WebService::enlightSwitchHandler(AsyncWebServerRequest *request)
   }
 }
 
+/**
+ * Enlight color setting handler
+ *
+ * Endpoint:
+ * http://ENLIGHT_IP/color
+ *
+ * Parameter:
+ * - value:
+ *      - CSS RGB color value (e.g. #ffffff for white, #000000 for black)
+ *
+ * Returns:
+ * HTTP 200 with string “OK” if successful, or
+ * HTTP 400 with string "Bad Request" if failed.
+ * @param request
+ */
 void WebService::enlightColorHandler(AsyncWebServerRequest *request)
 {
   if (request->hasArg("value")
@@ -230,7 +280,7 @@ void WebService::enlightColorHandler(AsyncWebServerRequest *request)
 
     CRGB color = CRGB(colorValue);
 
-    copyColorToAllLed(enlightArray, color);
+    Color::copyColorToAllLed(enlightArray, color, fastLED);
 
     request->send(200, "text/plain", "OK");
 
@@ -239,6 +289,23 @@ void WebService::enlightColorHandler(AsyncWebServerRequest *request)
   }
 }
 
+/**
+ * Enlight color temperature handler
+ *
+ * Endpoint:
+ * http://ENLIGHT_IP/reset
+ *
+ * Parameter:
+ * - factory:
+ *      - "true": will perform factory reset, ALL SETTINGS WILL BE WIPED
+ *      - "false": will perform a simple CPU reset (i.e. reboot)
+ *
+ * Returns:
+ * NOTHING if successful, or
+ * HTTP 400 with string "Bad Request" if failed.
+ *
+ * @param request
+ */
 void WebService::enlightColorTempHandler(AsyncWebServerRequest * request)
 {
   if (request->hasArg("value") 
@@ -249,7 +316,7 @@ void WebService::enlightColorTempHandler(AsyncWebServerRequest * request)
 
     log_d("Color: got color %lu...", request->arg("value").toInt());
 
-    copyColorToAllLed(enlightArray, color);
+    Color::copyColorToAllLed(enlightArray, color, fastLED);
     fastLED->show();
 
     request->send(200, "text/plain", "OK");
@@ -277,18 +344,36 @@ void WebService::enlightBrightnessHandler(AsyncWebServerRequest *request)
   }
 }
 
+/**
+ * Enlight setting handler
+ *
+ * Endpoint:
+ * http://ENLIGHT_IP/setting
+ *
+ * Parameter:
+ * - wifi_ssid:
+ *      - WiFi's SSID to connect
+ * - wifi_passwd
+ *      - WiFi's password to connect
+ *
+ * Returns:
+ * HTTP 200 with string "OK" if successful, or
+ * HTTP 400 with string "Bad Request" if failed.
+ *
+ * @param request
+ */
 void WebService::enlightSettingHandler(AsyncWebServerRequest *request)
 {
 
   // Save to NVRAM
   // WiFi SSID
-  if (request->hasArg(ENLIGHT_NVRAM_WIFI_SSID)) {
+  if (request->hasArg("wifi_ssid")) {
     log_i("Preference: WiFi SSID has changed, new value: %s\n", request->arg("wifi_ssid"));
     preferences->putString(ENLIGHT_NVRAM_WIFI_SSID, request->arg(ENLIGHT_NVRAM_WIFI_SSID));
   }
 
   // WiFi Password
-  if (request->hasArg(ENLIGHT_NVRAM_WIFI_PASSWORD)) {
+  if (request->hasArg("wifi_passwd")) {
     log_i("Preference: WiFi password has changed, new value: %s\n", request->arg(ENLIGHT_NVRAM_WIFI_PASSWORD));
     preferences->putString(ENLIGHT_NVRAM_WIFI_PASSWORD, request->arg(ENLIGHT_NVRAM_WIFI_PASSWORD));
   }
@@ -300,6 +385,22 @@ void WebService::enlightSettingHandler(AsyncWebServerRequest *request)
   request->send(200, "text/plain", "OK");
 }
 
+/**
+ * Enlight info handler
+ * Reserved for mobile device app
+ *
+ * Endpoint:
+ * http://ENLIGHT_IP/info
+ *
+ * Parameter:
+ * None
+ *
+ * Returns:
+ * HTTP 200 with JSON string if successful, or
+ * HTTP 400 with string "Bad Request" if failed.
+ *
+ * @param request
+ */
 void WebService::enlightInfoHandler(AsyncWebServerRequest *request)
 {
   // Get device name
@@ -342,10 +443,27 @@ void WebService::enlightInfoHandler(AsyncWebServerRequest *request)
   request->send(response);
 }
 
+/**
+ * Enlight OTA handler
+ * Originally implemented by JMishou, ref: https://gist.github.com/JMishou/60cb762047b735685e8a09cd2eb42a60
+ *
+ * Endpoint:
+ * http://ENLIGHT_IP/ota
+ *
+ * Parameter:
+ * Just the OTA binary file
+ *
+ * Returns:
+ * HTTP 200 with HTML string if successful, or
+ * HTTP 400 with string "Bad Request" if failed.
+ *
+ * Might be rewritten later as it's ugly as fuck
+ *
+ * @param request
+ */
 void WebService::enlightOtaHandler(AsyncWebServerRequest *request, String filename, size_t index,
                                 uint8_t *data, size_t len, bool final)
 {
-  // Originally implemented by JMishou, ref: https://gist.github.com/JMishou/60cb762047b735685e8a09cd2eb42a60
   // if index == 0 then this is the first frame of data
   if(!index){
     log_i("OTA: got image: %s\n", filename.c_str());
@@ -397,13 +515,31 @@ void WebService::enlightOtaHandler(AsyncWebServerRequest *request, String filena
   }
 }
 
+/**
+ * Enlight saving handler
+ * Saving current LED status to internal storage
+ *
+ * Endpoint:
+ * http://ENLIGHT_IP/save
+ *
+ * Parameter:
+ * - cmd:
+ *      - save: Save to internal storage
+ *      - reset: Reset to default LED settings (LED only - different from factory reset!)
+ *
+ * Returns:
+ * HTTP 200 with string "OK" if successful, or
+ * HTTP 400 with string "Bad Request" if failed.
+ *
+ * @param request
+ */
 void WebService::enlightSaveHandler(AsyncWebServerRequest *request)
 {
   CRGB color = *fastLED->leds();
   if(request->hasArg("cmd") && request->arg("cmd").equals("save")) {
 
     log_i("Save: saving current LED settings to NVRAM...");
-    Helpers::setColorToNvram(color, preferences);
+    Nvram::setColorToNvram(color, preferences);
     preferences->putUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, fastLED->getBrightness());
     request->send(200, "text/plain", "OK");
 
@@ -419,6 +555,11 @@ void WebService::enlightSaveHandler(AsyncWebServerRequest *request)
   }
 }
 
+/**
+ * Tempate renderer
+ * @param var
+ * @return
+ */
 String WebService::enlightTemplateRenderer(const String &var)
 {
   // Return WiFi SSID

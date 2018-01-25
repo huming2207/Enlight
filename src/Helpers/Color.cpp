@@ -3,9 +3,15 @@
 // Original JavaScript version written by Paul Kaplan: https://gist.github.com/paulkaplan/5184275
 //
 
+#include <Defaults/Pinmaps.h>
+#include "Nvram.h"
 #include "Color.h"
 
-
+/**
+ * Convert color temperature to CRGB struct (with RGB value inside it)
+ * @param colorTemp - color temperature
+ * @return - CRGB struct
+ */
 CRGB Color::GetRgbFromColorTemp(int colorTemp)
 {
 
@@ -41,6 +47,14 @@ CRGB Color::GetRgbFromColorTemp(int colorTemp)
               clipColorValue((uint8_t)blueValue, 0, 255));  // Final blue color value
 }
 
+/**
+ * ...just a clip method
+ *
+ * @param number - input value
+ * @param min - minimum value
+ * @param max - maximum value
+ * @return return value between min < number < max
+ */
 uint8_t Color::clipColorValue(uint8_t number, uint8_t min, uint8_t max)
 {
   // for ESP32 platform, std::min and std::max are broken
@@ -48,4 +62,39 @@ uint8_t Color::clipColorValue(uint8_t number, uint8_t min, uint8_t max)
   if (number > max) return max;
 
   return number;
+}
+
+/**
+ * uint8_t struct to uint_32 value
+ * @return unsigned integer, 32bit
+ */
+uint32_t Color::rgbToColorCode(uint8_t red, uint8_t green, uint8_t blue)
+{
+  CRGB color = CRGB(red, green, blue);
+  return rgbToColorCode(color);
+}
+
+/**
+ * FastLED color struct to uint_32 value
+ * @param color
+ * @return unsigned integer, 32bit
+ */
+uint32_t Color::rgbToColorCode(CRGB &color)
+{
+  return (uint32_t)(((color.r & 0xff) << 16) + ((color.g & 0xff) << 8) + (color.b & 0xff));
+}
+
+/**
+ * Iterate all LEDs in the array and copy all colors to it
+ * @param ledArray LED array
+ * @param color Reference of color in CRGB LED object
+ */
+void Color::copyColorToAllLed(CRGBArray<ENLIGHT_LED_COUNT> ledArray, CRGB &color, CFastLED *fastLED)
+{
+  log_i("Color: copying color, r=%d, g=%d b=%d", color.r, color.g, color.b);
+  for (uint8_t ledIndex = 0; ledIndex < ledArray.size(); ledIndex++) {
+    ledArray[ledIndex] = color;
+  }
+
+  fastLED->show();
 }
