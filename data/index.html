@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EnlightCenter Web</title>
+
+    <!-- NOTICE: here we need to change "common" to "ui" to make it works with local debugging -->
+    <!-- Check "src/WebService.cpp", method "webInit()" to find the reason why.  -->
     <link rel="stylesheet" href="common/css/semantic.min.css"/>
     <script src="common/js/semantic.min.js"></script>
-    <script src="scripts/light.js"></script>
+    <script src="elighten-ui/light.js"></script>
 </head>
 <body>
 <div class="ui pointing menu">
@@ -16,7 +19,7 @@
     <a class="item" href="#settings">
         Settings
     </a>
-    <a class="item" href="/about.html">
+    <a class="item" href="about.html">
         About Enlight
     </a>
 </div>

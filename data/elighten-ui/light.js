@@ -26,6 +26,7 @@ function sendSettings(endPoint, setting) {
 
     httpRequest.onreadystatechange = function (ev) {
 
+        // The backend will return "OK" with status code 200 if it has been successfully handled the request.
         if(this.readyState === XMLHttpRequest.DONE && this.status === 200) {
             if(!this.responseText.localeCompare("OK")) {
                 console.log("Wrong parameters, this is a bug.")

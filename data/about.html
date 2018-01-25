@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>About Enlight</title>
+
+    <!-- NOTICE: here we need to change the path "common" to "ui" to make it works with local debugging -->
+    <!-- Check "src/WebService.cpp", method "webInit()" to find the reason why.  -->
     <link rel="stylesheet" href="common/css/semantic.min.css"/>
     <script src="common/js/semantic.min.js"></script>
 </head>
@@ -14,7 +17,7 @@
     <a class="item" href="#upgrade">
         Firmware Upgrade
     </a>
-    <a class="item" href="/">
+    <a class="item" href="index.html">
         Back to home page
     </a>
 </div>
@@ -73,6 +76,8 @@
         </table>
         <p>
             Built with Espressif ESP32 Micro-controller, SK6812 RGB LED, Semantic UI (for Web GUI) and ❤️.
+            <br>
+            "Why not enlighten ourselves, together?"
         </p>
     </div>
     <div class="ui segment" id="upgrade">
