@@ -1,6 +1,6 @@
 # Enlight
 
-Yet another WiFi smart lamp, built with ESP32, SK6812 LED, Arduino/FreeRTOS (as backend), Semantic UI (as frontend) and love ♥️.
+Yet another WiFi smart lamp, built with Espressif ESP32 micro-controller, SK6812 LED, Arduino/FreeRTOS (as backend), Semantic UI (for frontend) and love ♥️.
 
 ## To-do
 
@@ -18,6 +18,9 @@ Yet another WiFi smart lamp, built with ESP32, SK6812 LED, Arduino/FreeRTOS (as 
 - Aluminum shield with human body touch support 
     - Too sensitive, broken, might cancel this function later
 - 1x key with built-in LED indicator
+- Power supply: 5V @ 1.5A, USB (with UART on data bus)
+
+Two devices (and two only) have been built, running exactly the same firmware
 
 ## Software note
 
