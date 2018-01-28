@@ -4,6 +4,7 @@
  * As a result, in this section we will use a separated task (in "loop()" function) and handle the key inputs.
  *
  */
+#include <main.h>
 #include "Defaults/Pinmaps.h"
 #include "KeyService.h"
 
@@ -21,6 +22,7 @@ void KeyService::init(CFastLED *led, Preferences *pref)
   ledcSetup(ENLIGHT_MAIN_KEY_LEDC_CHANNEL, ENLIGHT_MAIN_KEY_LEDC_FREQ, ENLIGHT_MAIN_KEY_LEDC_BIT);
   ledcAttachPin(ENLIGHT_MAIN_KEY_LED_PIN, ENLIGHT_MAIN_KEY_LEDC_CHANNEL);
 }
+
 void KeyService::handleKeyLight()
 {
   lastState = fastLED->getBrightness() > 0;
@@ -35,39 +37,45 @@ void KeyService::handleKeyLight()
       delay(1);
     }
   }
-
-  delay(5);
 }
 
 void KeyService::handleInput()
 {
-  shieldTouched = (touchRead(ENLIGHT_TOUCH_INTR_PIN) <= ENLIGHT_TOUCH_INTR_SENSE);
-  keyPressed = (digitalRead(ENLIGHT_MAIN_KEY_INTR_PIN) == HIGH);
+  uint32_t keyPressedDelay = 0;
 
-  // If shield touched, then adjust the brightness
-  if(shieldTouched) {
+  while(digitalRead(ENLIGHT_MAIN_KEY_INTR_PIN) == HIGH) {
 
-    // Get current LED brightness
+    // Delay 50ms and take it to the delay counter
+    delay(5);
+    keyPressedDelay += 5;
 
-    if(fastLED->getBrightness() >= 255) {
-      fastLED->setBrightness(1);
+    // If the key press event is longer than 1 second, then it must be long press event
+    // i.e. adjust brightness
+    if(keyPressedDelay > 1000) {
+      if(fastLED->getBrightness() == 255) {
+        fastLED->setBrightness(1);
+      } else {
+        ledcWrite(ENLIGHT_MAIN_KEY_LEDC_CHANNEL, 0);
+        fastLED->setBrightness(fastLED->getBrightness() + (uint8_t)10);
+
+        // Delay 50ms and take it to the delay counter
+        delay(100);
+        keyPressedDelay += 100;
+
+        ledcWrite(ENLIGHT_MAIN_KEY_LEDC_CHANNEL, 8192);
+      }
     }
-
-    fastLED->setBrightness(fastLED->getBrightness() + (uint8_t)1);
-
-    fastLED->show();
-
-    // If key pressed, then switch it off.
-  } else if(keyPressed) {
-
-    /*if(fastLED->getBrightness() != 0) {
-      fastLED->setBrightness((uint8_t)preferences.getUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, 255));
-    } else {
-      fastLED->setBrightness(0);
-    } */
-
   }
 
-  // Don't stress the CPU (waste CPU time)
-  delay(5);
+  // When key is pressed in less than about 1 second,
+  // treat it as short pressing event, i.e. turn the light on/off
+  if(keyPressedDelay <= 1000) {
+
+    // Minimum brightness should be 1, if it's not, then it has turned off
+    if (fastLED->getBrightness() < 1) {
+      fastLED->setBrightness((uint8_t) preferences->getUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, 255));
+    } else {
+      fastLED->setBrightness(0);
+    }
+  }
 }

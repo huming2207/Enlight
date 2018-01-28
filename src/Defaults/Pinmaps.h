@@ -27,12 +27,6 @@
 // Main key LEDC resolution bit
 #define ENLIGHT_MAIN_KEY_LEDC_BIT                   13
 
-// Shield touch sensor pin
-#define ENLIGHT_TOUCH_INTR_PIN                      2
-
-// Shield touch sensivity
-#define ENLIGHT_TOUCH_INTR_SENSE                    15
-
 // Default (estimated) LED color temperature
 #define ENLIGHT_DEFAULT_LED_COLOR_TEMP              5500
 
