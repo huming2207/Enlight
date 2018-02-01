@@ -4,8 +4,9 @@
 
 #include <Arduino.h>
 
-KeyService keyService;// NOLINT
-CFastLED fastLED; // NOLINT
+WebService webService; // NOLINT
+KeyService keyService; // NOLINT
+CFastLED fastLED;      // NOLINT
 Preferences preferences; // NOLINT
 
 void setup()
@@ -16,7 +17,6 @@ void setup()
   log_i("System boot started...");
 
   // Initialise web services
-  WebService webService;
   webService.init(&fastLED, &preferences);
 
   // Initialise key services
@@ -25,6 +25,5 @@ void setup()
 
 void loop()
 {
-
 }
 
