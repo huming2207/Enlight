@@ -13,7 +13,7 @@
 #define ENLIGHT_LED_DATA_BUS_PIN                    0
 
 // Main key interrupt pin
-#define ENLIGHT_MAIN_KEY_INTR_PIN                   15
+#define ENLIGHT_MAIN_KEY_INTR_PIN                   2
 
 // Main key LED pin
 #define ENLIGHT_MAIN_KEY_LED_PIN                    5
