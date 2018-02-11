@@ -21,61 +21,61 @@ void KeyService::init(CFastLED *led, Preferences *pref)
   // Setup main key's LED
   ledcSetup(ENLIGHT_MAIN_KEY_LEDC_CHANNEL, ENLIGHT_MAIN_KEY_LEDC_FREQ, ENLIGHT_MAIN_KEY_LEDC_BIT);
   ledcAttachPin(ENLIGHT_MAIN_KEY_LED_PIN, ENLIGHT_MAIN_KEY_LEDC_CHANNEL);
-}
-
-void KeyService::handleKeyLight()
-{
-  lastState = fastLED->getBrightness() > 0;
-
-  // If the light is on, write the maximum duty value
-  if(lastState) {
-    ledcWrite(ENLIGHT_MAIN_KEY_LEDC_CHANNEL, 8192);
-
-  } else { // Or, let it turns off slowly in 8 seconds
-    for(uint32_t ledDuty = 8192; ledDuty < 1; ledDuty -= 1) {
-      ledcWrite(ENLIGHT_MAIN_KEY_LEDC_CHANNEL, ledDuty);
-      delay(1);
-    }
-  }
+  previous = HIGH;
+  setBright = false;
 }
 
 void KeyService::handleInput()
 {
-  uint32_t keyPressedDelay = 0;
+  current = digitalRead(ENLIGHT_MAIN_KEY_INTR_PIN);
 
-  while(digitalRead(ENLIGHT_MAIN_KEY_INTR_PIN) == HIGH) {
+  // if the button state changes to pressed, remember the start time
+  if (current == LOW && previous == HIGH && (millis() - firstTime) > 200) {
+    firstTime = millis();
+  }
 
-    // Delay 50ms and take it to the delay counter
-    delay(5);
-    keyPressedDelay += 5;
+  millis_held = (millis() - firstTime);
+  secs_held = millis_held / 1000;
 
-    // If the key press event is longer than 1 second, then it must be long press event
-    // i.e. adjust brightness
-    if(keyPressedDelay > 1000) {
-      if(fastLED->getBrightness() == 255) {
-        fastLED->setBrightness(1);
+  // This if statement is a basic debouncing tool, the button must be pushed for at least
+  // 100 milliseconds in a row for it to be considered as a push.
+  if (millis_held > 100) {
+
+    // check if the button was released since we last checked
+    if (current == HIGH && previous == LOW) {
+      // ===============================================================================
+      // Button pressed for less than 1 second
+      if(setBright) {
+        log_i("Exiting brightness selection...");
+        setBright = false;
+      } else if (secs_held <= 1) {
+        if(fastLED->getBrightness() == 0) {
+          log_i("Now the LED should be ON, brightness %d.", fastLED->getBrightness());
+          fastLED->setBrightness((uint8_t)preferences->getUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, 255));
+          fastLED->show();
+        } else {
+          log_i("Now the LED should be OFF, brightness %d.", fastLED->getBrightness());
+          fastLED->setBrightness(0);
+          fastLED->show();
+        }
       } else {
-        ledcWrite(ENLIGHT_MAIN_KEY_LEDC_CHANNEL, 0);
-        fastLED->setBrightness(fastLED->getBrightness() + (uint8_t)10);
+        setBright = true;
+        log_i("Entering brightness selection...");
+        while(digitalRead(ENLIGHT_MAIN_KEY_INTR_PIN) == HIGH && setBright) {
+          if(fastLED->getBrightness() == 255) {
+            fastLED->setBrightness(1);
+          } else {
+            fastLED->setBrightness((uint8_t)(fastLED->getBrightness() + 1));
+          }
 
-        // Delay 50ms and take it to the delay counter
-        delay(100);
-        keyPressedDelay += 100;
-
-        ledcWrite(ENLIGHT_MAIN_KEY_LEDC_CHANNEL, 8192);
+          delay(20);
+          fastLED->show();
+        }
       }
+      // ===============================================================================
     }
   }
 
-  // When key is pressed in less than about 1 second,
-  // treat it as short pressing event, i.e. turn the light on/off
-  if(keyPressedDelay <= 1000) {
-
-    // Minimum brightness should be 1, if it's not, then it has turned off
-    if (fastLED->getBrightness() < 1) {
-      fastLED->setBrightness((uint8_t) preferences->getUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, 255));
-    } else {
-      fastLED->setBrightness(0);
-    }
-  }
+  previous = current;
+  prev_secs_held = secs_held;
 }

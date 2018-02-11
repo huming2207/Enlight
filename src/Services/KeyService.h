@@ -13,13 +13,16 @@ class KeyService
  private:
   CFastLED *fastLED;
   Preferences *preferences;
-  bool lastState = false;
-  bool shieldTouched = false;
-  bool keyPressed = false;
+  int current;
+  int previous;
+  long millis_held;    // How long the button was held (milliseconds)
+  long secs_held;      // How long the button was held (seconds)
+  long prev_secs_held; // How long the button was held in the previous check
+  unsigned long firstTime; // how long since the button was first pressed
+  bool setBright;
 
  public:
   void init(CFastLED *led, Preferences *pref);
-  void handleKeyLight();
   void handleInput();
 
 };

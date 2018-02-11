@@ -39,6 +39,7 @@ void WebService::init(CFastLED *led, Preferences *pref)
     // Init LEDs
     log_w("Preference: Settings are not present or corrupted, will be initialized!\n");
     preferences->clear();
+
     CRGB initialRGB = Color::GetRgbFromColorTemp(ENLIGHT_DEFAULT_LED_COLOR_TEMP);
     Color::copyColorToAllLed(enlightArray, initialRGB, fastLED);
     Nvram::setColorToNvram(initialRGB, preferences);
@@ -89,16 +90,10 @@ void WebService::init(CFastLED *led, Preferences *pref)
 
     // Register mDNS service
     log_i("MDNS: Setting up mDNS service with device name %s...\n", deviceName.c_str());
-
-    if (WiFi.getMode() == WIFI_MODE_APSTA || WiFi.getMode() == WIFI_MODE_AP) {
-      MDNS.begin(deviceName.c_str(), TCPIP_ADAPTER_IF_AP);
-    } else {
-      MDNS.begin(deviceName.c_str());
-    }
+    MDNS.begin(deviceName.c_str());
 
     // Register MDNS service
     MDNS.addService("_http", "_tcp", 80);
-
 
     // Do web initialization
     webInit();
@@ -317,7 +312,6 @@ void WebService::enlightColorTempHandler(AsyncWebServerRequest * request)
     log_d("Color: got color %lu...", request->arg("value").toInt());
 
     Color::copyColorToAllLed(enlightArray, color, fastLED);
-    fastLED->show();
 
     request->send(200, "text/plain", "OK");
 
@@ -336,6 +330,7 @@ void WebService::enlightBrightnessHandler(AsyncWebServerRequest *request)
     uint8_t value = (uint8_t) request->arg("value").toInt();
     log_d("Brightness: setting to %d...", value);
     fastLED->show(value);
+
     request->send(200, "text/plain", "OK");
 
 

@@ -19,11 +19,12 @@ void setup()
   // Initialise web services
   webService.init(&fastLED, &preferences);
 
-  // Initialise key services
+  // Key Interrupt
   keyService.init(&fastLED, &preferences);
 }
 
 void loop()
 {
+  keyService.handleInput();
 }
 
