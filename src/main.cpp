@@ -26,5 +26,13 @@ void setup()
 void loop()
 {
   keyService.handleInput();
+
+  // When user presses Ctrl-C, it should reboots.
+  if(Serial.available() > 0) {
+    if(Serial.read() == 3) {
+      log_w("Will now restart!");
+      ESP.restart();
+    }
+  }
 }
 

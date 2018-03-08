@@ -9,7 +9,6 @@
 
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
-#include <SPIFFS.h>
 #include <AsyncJson.h>
 
 /**
@@ -109,7 +108,6 @@ void WebService::webInit()
 
   // Mount filesystem
   log_d("WebService: init filesystem...");
-  SPIFFS.begin();
 
   // Load OTA service
   updater = UpdateClass();
@@ -158,20 +156,6 @@ void WebService::webInit()
                          std::placeholders::_4,
                          std::placeholders::_5,
                          std::placeholders::_6)); // 6 parameters here, so 6 placeholders are necessary
-  
-  webServer.serveStatic("/", SPIFFS, "/")
-      .setTemplateProcessor(std::bind(&WebService::enlightTemplateRenderer, this, std::placeholders::_1))
-      .setDefaultFile("index.html");
-
-  /*
-   * Here we've set the UI path to another fake one, due to:
-   * 1. separating resource out from root, as the template engine will fuck up the CSS
-   * 2. Cache-Control header has been set to the longest value to ensure the page can be loaded as fast as possible.
-   *
-   * When modifying the frontend stuff,
-   *  we need to change the path back to "ui" and change it back to "common" later when deploying.
-   */
-  webServer.serveStatic("/common", SPIFFS, "/ui").setCacheControl("max-age=31536000");
 
   webServer.begin();
 }
@@ -466,10 +450,9 @@ void WebService::enlightOtaHandler(AsyncWebServerRequest *request, String filena
     if(!updater.begin()){
       log_e("OTA: congrats, you've fucked up with an error code: ", updater.getError());
 
-      String errorStr = "<script>alert('Firmware upgrade failed, error code: ";
+      String errorStr = "Firmware upgrade failed, error code: ";
       errorStr += updater.getError();
-      errorStr += "');</script>";
-      request->send(200, "text/html", errorStr.c_str());
+      request->send(500, "text/plain", errorStr.c_str());
       updater.printError(Serial);
 
       delay(1000);
@@ -480,10 +463,9 @@ void WebService::enlightOtaHandler(AsyncWebServerRequest *request, String filena
   // Write chunked data to the free sketch space
   if(updater.write(data, len) != len){
     log_e("OTA: congrats, you've fucked up with an error code: ", updater.getError());
-    String errorStr = "<script>alert('Firmware upgrade failed, error code: ";
+    String errorStr = "Firmware upgrade failed, error code: ";
     errorStr += updater.getError();
-    errorStr += "');</script>";
-    request->send(200, "text/html", errorStr.c_str());
+    request->send(500, "text/plain", errorStr.c_str());
     updater.printError(Serial);
 
     delay(1000);
@@ -493,10 +475,7 @@ void WebService::enlightOtaHandler(AsyncWebServerRequest *request, String filena
   // If the final flag is set then this is the last frame of data
   if(final) {
     if(updater.end(true)) {
-      request->send(200, "text/html",
-                    "<script>"
-                        "alert('Firmware updated, please wait until your device connects to your network again');"
-                    "</script>");
+      request->send(200, "text/plain", "Firmware updated, please wait until your device connects to your network again");
 
       log_i("OTA: %u bypes written, rebooting...", index+len);
 
@@ -586,5 +565,6 @@ String WebService::enlightTemplateRenderer(const String &var)
 
   return String();
 }
+
 
 
