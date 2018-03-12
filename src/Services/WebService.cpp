@@ -159,6 +159,8 @@ void WebService::webInit()
 
   webServer.on("/led_info", HTTP_GET, std::bind(&WebService::enlightLightInfoHandler, this, std::placeholders::_1));
 
+  webServer.on("/update", HTTP_GET, std::bind(&WebService::enlightRecoveryHandler, this, std::placeholders::_1));
+
   webServer.begin();
 }
 
@@ -587,6 +589,11 @@ String WebService::enlightTemplateRenderer(const String &var)
   }
 
   return String();
+}
+
+void WebService::enlightRecoveryHandler(AsyncWebServerRequest *request)
+{
+  request->send(200, "text/html", ENLIGHT_RECOVERY_PAGE_HTML);
 }
 
 

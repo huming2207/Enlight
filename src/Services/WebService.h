@@ -30,6 +30,7 @@ class WebService
   CRGBArray<ENLIGHT_LED_COUNT> enlightArray;
   String enlightTemplateRenderer(const String& var);
   void enlightLightInfoHandler(AsyncWebServerRequest * request);
+  void enlightRecoveryHandler(AsyncWebServerRequest *request);
 
  public:
   void init(CFastLED *led, Preferences *pref);

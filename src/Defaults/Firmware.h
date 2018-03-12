@@ -45,4 +45,7 @@
 // Note: if no password then fill "nu11"
 #define ENLIGHT_NVRAM_WIFI_PASSWORD                   "wifi_passwd"
 
+// Emergency Recovery page
+#define ENLIGHT_RECOVERY_PAGE_HTML                    "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">    <title>Enlight Recovery</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head><body><h1>Enlight Emergency Recovery - Enlight智能台灯应急修复工具</h1><p>Pick a firmware package and press the upload button to burn the image.</p><p>选个固件包，点下面的上传按钮，即可开始刷机。</p>    <form method='POST' action='/ota' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Upload'></form><p><br><br>By \"Jackson\" Ming Hu @ 2017-2018</p><a href=\"https://github.com/huming2207\">GitHub user page</a></body></html>"
+
 #endif //ENLIGHT_COMMON_H
