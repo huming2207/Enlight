@@ -23,12 +23,13 @@ class WebService
   void enlightColorHandler(AsyncWebServerRequest *request);
   void enlightBrightnessHandler(AsyncWebServerRequest *request);
   void enlightSettingHandler(AsyncWebServerRequest *request);
-  void enlightInfoHandler(AsyncWebServerRequest *request);
+  void enlightSysInfoHandler(AsyncWebServerRequest *request);
   void enlightColorTempHandler(AsyncWebServerRequest * request);
   void enlightOtaHandler(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
   void enlightSaveHandler(AsyncWebServerRequest *request);
   CRGBArray<ENLIGHT_LED_COUNT> enlightArray;
   String enlightTemplateRenderer(const String& var);
+  void enlightLightInfoHandler(AsyncWebServerRequest * request);
 
  public:
   void init(CFastLED *led, Preferences *pref);

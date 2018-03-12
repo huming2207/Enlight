@@ -138,9 +138,9 @@ void WebService::webInit()
                HTTP_POST,
                std::bind(&WebService::enlightSettingHandler, this, std::placeholders::_1));
 
-  webServer.on("/info",
+  webServer.on("/sys_info",
                HTTP_GET,
-               std::bind(&WebService::enlightInfoHandler, this, std::placeholders::_1));
+               std::bind(&WebService::enlightSysInfoHandler, this, std::placeholders::_1));
 
   webServer.on("/save",
                HTTP_GET,
@@ -156,6 +156,8 @@ void WebService::webInit()
                          std::placeholders::_4,
                          std::placeholders::_5,
                          std::placeholders::_6)); // 6 parameters here, so 6 placeholders are necessary
+
+  webServer.on("/led_info", HTTP_GET, std::bind(&WebService::enlightLightInfoHandler, this, std::placeholders::_1));
 
   webServer.begin();
 }
@@ -364,6 +366,27 @@ void WebService::enlightSettingHandler(AsyncWebServerRequest *request)
   request->send(200, "text/plain", "OK");
 }
 
+void WebService::enlightLightInfoHandler(AsyncWebServerRequest * request)
+{
+  // Encode JSON and send it to user
+  auto *response = new AsyncJsonResponse();
+  JsonObject &infoObject = response->getRoot();
+  auto *color = fastLED->leds();
+
+  infoObject["brightness"] = fastLED->getBrightness();
+  infoObject["color"] = Color::rgbToColorCode(*color);
+
+  // Now prepare to send out the stream buffer
+  response->setContentType("application/json");
+  response->setCode(200);
+
+  // Get the length
+  response->setLength();
+
+  // Send to user
+  request->send(response);
+}
+
 /**
  * Enlight info handler
  * Reserved for mobile device app
@@ -380,7 +403,7 @@ void WebService::enlightSettingHandler(AsyncWebServerRequest *request)
  *
  * @param request
  */
-void WebService::enlightInfoHandler(AsyncWebServerRequest *request)
+void WebService::enlightSysInfoHandler(AsyncWebServerRequest *request)
 {
   // Get device name
   String deviceName = String((unsigned long) ESP.getEfuseMac(), HEX);
