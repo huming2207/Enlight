@@ -416,25 +416,25 @@ void WebService::enlightSysInfoHandler(AsyncWebServerRequest *request)
   JsonObject &infoObject = response->getRoot();
 
   // Add information to buffer
-  infoObject["led_count"] = ENLIGHT_LED_COUNT;
-  infoObject["sys_inited"] = preferences->getBool(ENLIGHT_NVRAM_INIT_FLAG, false);
-  infoObject["sys_free_ram"] = ESP.getFreeHeap();
-  infoObject["sys_sdk_ver"] = ESP.getSdkVersion();
-  infoObject["sys_id"] = String((unsigned long) ESP.getEfuseMac(), HEX);
-  infoObject["sys_chip_rev"] = ESP.getChipRevision();
-  infoObject["sys_dual_core"] = (ARDUINO_RUNNING_CORE == 1);
-  infoObject["sys_ver"] = ENLIGHT_VERSION_FULL;
+  infoObject["ledCount"] = ENLIGHT_LED_COUNT;
+  infoObject["sysInited"] = preferences->getBool(ENLIGHT_NVRAM_INIT_FLAG, false);
+  infoObject["sysFreeRam"] = ESP.getFreeHeap();
+  infoObject["sysSdkVer"] = ESP.getSdkVersion();
+  infoObject["sysId"] = String((unsigned long) ESP.getEfuseMac(), HEX);
+  infoObject["sysChipRev"] = ESP.getChipRevision();
+  infoObject["sysDualCore"] = (ARDUINO_RUNNING_CORE == 1);
+  infoObject["sysVer"] = ENLIGHT_VERSION_FULL;
 
   // WiFi.localIP() will only return correct IP address when it works in client (STA only) mode.
   // To get correct IP address in AP mode or AP+STA mixed mode, we need to use WiFi.softAPIP() instead.
-  infoObject["net_ip"] =
+  infoObject["netIp"] =
       (WiFi.getMode() == WIFI_MODE_AP || WiFi.getMode() == WIFI_MODE_APSTA) ?
       WiFi.softAPIP().toString() :
       WiFi.localIP().toString();
 
   // ...same as SSID
-  infoObject["net_ssid"] = (WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID();
-  infoObject["net_sig"] = WiFi.RSSI();
+  infoObject["netSsid"] = (WiFi.SSID().length() < 1) ? ENLIGHT_DEFAULT_WIFI_SSID : WiFi.SSID();
+  infoObject["netSig"] = WiFi.RSSI();
 
   // Now prepare to send out the stream buffer
   response->setContentType("application/json");
