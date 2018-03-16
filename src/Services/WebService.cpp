@@ -135,7 +135,7 @@ void WebService::webInit()
                std::bind(&WebService::enlightBrightnessHandler, this, std::placeholders::_1));
 
   webServer.on("/setting",
-               HTTP_POST,
+               HTTP_GET,
                std::bind(&WebService::enlightSettingHandler, this, std::placeholders::_1));
 
   webServer.on("/sys_info",
@@ -352,20 +352,22 @@ void WebService::enlightSettingHandler(AsyncWebServerRequest *request)
 
   // Save to NVRAM
   // WiFi SSID
-  if (request->hasArg("wifi_ssid")) {
-    log_i("Preference: WiFi SSID has changed, new value: %s\n", request->arg("wifi_ssid"));
-    preferences->putString(ENLIGHT_NVRAM_WIFI_SSID, request->arg(ENLIGHT_NVRAM_WIFI_SSID));
+  if (request->hasParam("wifi_ssid")) {
+    log_i("Preference: WiFi SSID has changed, new value: %s\n", request->arg(ENLIGHT_NVRAM_WIFI_SSID).c_str());
+    preferences->putString(ENLIGHT_NVRAM_WIFI_SSID, request->arg(ENLIGHT_NVRAM_WIFI_SSID).c_str());
+
+    // Set init flag to true
+    log_i("Preference: setting LED init flag to true...\n");
+    preferences->putBool(ENLIGHT_NVRAM_INIT_FLAG, false);
+  } else {
+    request->send(400, "text/plain", "Bad request");
   }
 
   // WiFi Password
-  if (request->hasArg("wifi_passwd")) {
-    log_i("Preference: WiFi password has changed, new value: %s\n", request->arg(ENLIGHT_NVRAM_WIFI_PASSWORD));
-    preferences->putString(ENLIGHT_NVRAM_WIFI_PASSWORD, request->arg(ENLIGHT_NVRAM_WIFI_PASSWORD));
+  if (request->hasParam("wifi_passwd")) {
+    log_i("Preference: WiFi password has changed, new value: %s\n", request->arg(ENLIGHT_NVRAM_WIFI_PASSWORD).c_str());
+    preferences->putString(ENLIGHT_NVRAM_WIFI_PASSWORD, request->arg(ENLIGHT_NVRAM_WIFI_PASSWORD).c_str());
   }
-
-  // Set init flag to true
-  log_i("Preference: setting LED init flag to true...\n");
-  preferences->putBool(ENLIGHT_NVRAM_INIT_FLAG, false);
 
   request->send(200, "text/plain", "OK");
 }
