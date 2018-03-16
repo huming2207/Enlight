@@ -220,9 +220,11 @@ void WebService::enlightSwitchHandler(AsyncWebServerRequest *request)
 
   if (request->hasArg("switch") && request->arg("switch").equals("on")) {
     fastLED->setBrightness((uint8_t) preferences->getUInt(ENLIGHT_NVRAM_LED_BRIGHTNESS, 255));
+    fastLED->show();
     request->send(200, "text/plain", "OK");
   } else if (request->hasArg("switch") && request->arg("switch").equals("off")) {
     fastLED->setBrightness(0);
+    fastLED->show();
     request->send(200, "text/plain", "OK");
   } else {
     request->send(400, "text/plain", "Bad Request");

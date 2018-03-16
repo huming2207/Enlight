@@ -78,4 +78,6 @@ void KeyService::handleInput()
 
   previous = current;
   prev_secs_held = secs_held;
+
+  delay(20);
 }
