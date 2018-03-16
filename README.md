@@ -1,6 +1,6 @@
 # Enlight
 
-Yet another WiFi smart lamp, built with Espressif ESP32 micro-controller, SK6812 LED, Arduino/FreeRTOS (as backend), Semantic UI (for frontend) and love ♥️.
+Yet another WiFi smart lamp, built with Espressif ESP32 micro-controller, SK6812 LED and Arduino/FreeRTOS (as backend).
 
 ## To-do
 
@@ -28,10 +28,6 @@ Two devices (and two only) have been built, running exactly the same firmware
     - Web framework: `ESPAsyncWebServer` by @me-no-dev
     - JSON library: ArduinoJson
     - LED control library: FastLED
-    - Web UI library: Semantic UI
-    - JavaScript (XMLHttpRequest etc.)
-
-- Since there are some conflicts with Semantic UI stylesheet, the web page template placeholder symbol has been changed to "`~`" instead of "`%`". To avoid this issue, other developers may need to change the line `#define TEMPLATE_PLACEHOLDER '%'` to `#define TEMPLATE_PLACEHOLDER '~'` in the file `WebResponseImpl.h` in ESPAsyncWebServer library.
 
 ## Some photos
 
