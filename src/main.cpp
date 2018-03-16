@@ -33,6 +33,11 @@ void loop()
       log_w("Will now restart!");
       ESP.restart();
     }
+
+    if(Serial.read() == 4) {
+      log_w("NVRAM wiped, please press Ctrl-C to reboot!");
+      preferences.clear();
+    }
   }
 }
 
